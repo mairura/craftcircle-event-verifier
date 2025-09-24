@@ -73,7 +73,7 @@ export const ImageWrapper = styled.div`
 export const PreviewDetails = styled.div`
   display: flex;
   gap: 1rem;
-  padding: 1rem 10px 1rem 10px;
+  padding: 1rem 10px 3rem 10px;
 
   @media (max-width: 768px) {
     padding: 10px;
@@ -216,6 +216,7 @@ export const PreviewTimeZone = styled.div`
 export const AboutPreview = styled.div`
   display: flex;
   flex-direction: column;
+  padding-left: 1rem;
 
   @media (max-width: 768px) {
     margin-top: 1rem;
@@ -242,7 +243,7 @@ export const AboutDetails = styled.div`
   font-size: 1rem;
   line-height: 1.7;
   color: #333;
-  padding: 2rem 1rem;
+  padding: 2rem 0;
 
   p {
     margin-bottom: 1rem;

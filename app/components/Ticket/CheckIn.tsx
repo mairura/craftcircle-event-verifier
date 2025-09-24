@@ -1,5 +1,7 @@
 "use client";
 
+import { useScanTicketFromQr } from "@/app/hooks/useScanTicketFromQr";
+import { TicketTypesWithSummaryForEvent } from "@/app/hooks/useTicketTypesSummaryForEvent";
 import {
   CardText,
   CheckInCard,
@@ -14,6 +16,7 @@ import {
   StyledTable,
   TableWrapper,
 } from "@/app/styles/TicketStyles/Stats.styles";
+import { showErrorToast, showSuccessToast } from "@/app/utils/toast";
 import { BrowserMultiFormatReader } from "@zxing/library";
 import { Clock, Wallet, Search, ScanBarcode } from "lucide-react";
 import React, { useState } from "react";
@@ -26,29 +29,14 @@ type Row = {
   code: string;
 };
 
-const CheckIn = () => {
-  const [rows, setRows] = useState<Row[]>([
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+254700000000",
-      code: "ABC123",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane@example.com",
-      phone: "+254711111111",
-      code: "XYZ789",
-    },
-  ]);
-
+const CheckIn = ({ summary }: { summary?: TicketTypesWithSummaryForEvent }) => {
+const [rows, setRows] = useState<Row[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+   const { scanTicket } = useScanTicketFromQr();
 
-  const startScanner = async () => {
+   const startScanner = async () => {
     if (!videoRef.current) return;
     setScannerOpen(true);
 
@@ -60,22 +48,34 @@ const CheckIn = () => {
       );
       const scannedCode = result.getText();
 
-      // Add a new attendee (just for testing)
-      setRows((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          name: "New User",
-          email: "",
-          phone: "",
-          code: scannedCode,
-        },
-      ]);
+      // 🔗 Call GraphQL mutation here
+      const ticket = await scanTicket(scannedCode);
+
+      if (ticket) {
+        if (ticket.scanned) {
+          showSuccessToast("Ticket scanned successfully ✅");
+        } else {
+          showErrorToast("Ticket invalid or already used ❌");
+        }
+
+        // Optional: Add scanned ticket to table
+        setRows((prev) => [
+          ...prev,
+          {
+            id: prev.length + 1,
+            name: `Ticket #${ticket.id}`,
+            email: "",
+            phone: "",
+            code: ticket.transactionId,
+          },
+        ]);
+      }
 
       setScannerOpen(false);
       codeReader.reset();
     } catch (err) {
       console.error(err);
+      showErrorToast("Scanning failed. Try again.");
       setScannerOpen(false);
     }
   };
@@ -95,7 +95,7 @@ const CheckIn = () => {
             </IconWrapper>
             <CardText>
               <p>Tickets Checked In</p>
-              <h3>105</h3>
+              <h3>{summary?.totalCheckedIn ?? 0}</h3>
             </CardText>
           </CheckInCard>
 
@@ -105,7 +105,17 @@ const CheckIn = () => {
             </IconWrapper>
             <CardText>
               <p>Total Sold</p>
-              <h3>250</h3>
+             <h3>{summary?.totalSold ?? 0}</h3>
+            </CardText>
+          </CheckInCard>
+
+           <CheckInCard>
+            <IconWrapper>
+              <Wallet />
+            </IconWrapper>
+            <CardText>
+              <p>Total Tickets</p>
+             <h3>{summary?.totalTickets ?? 0}</h3>
             </CardText>
           </CheckInCard>
         </CheckInCards>

@@ -2,6 +2,7 @@
 import React from "react";
 import styled from "styled-components";
 import CheckIn from "./CheckIn";
+import { TicketTypesWithSummaryForEvent } from "@/app/hooks/useTicketTypesSummaryForEvent";
 
 const StatsContainer = styled.div`
   display: flex;
@@ -38,7 +39,8 @@ const StatsTag = styled.div`
   align-items: center;
   font-weight: 600;
   white-space: nowrap;
-  color: #aecdcb;
+  // color: #aecdcb;
+
   font-size: 1.5rem;
 `;
 
@@ -56,7 +58,7 @@ const TabColumn = styled.div`
   flex-direction: column;
 `;
 
-const StatsComponent: React.FC = () => {
+const StatsComponent = ({ summary }: { summary?: TicketTypesWithSummaryForEvent }) => {
   return (
     <StatsContainer>
       <StatsTags>
@@ -65,7 +67,7 @@ const StatsComponent: React.FC = () => {
 
       <TabContentRow>
         <TabColumn style={{ flex: "1 1 100%" }}>
-          <CheckIn />
+          <CheckIn summary={summary} />
         </TabColumn>
       </TabContentRow>
     </StatsContainer>

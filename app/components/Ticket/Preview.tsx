@@ -18,46 +18,39 @@ import {
   PreviewDetailsSectionItem,
   PreviewEvent,
   PreviewTimeZone,
-  ShareContainer,
-  ShareDropdown,
   StatsContainer,
 } from "@/app/styles/TicketStyles/Preview.styles";
-
+import { useTicketTypesWithSummaryForEvent } from "@/app/hooks/useTicketTypesSummaryForEvent";
 
 const PreviewAction = () => {
+  const access =
+    typeof window !== "undefined"
+      ? sessionStorage.getItem("verifiedEventAccess")
+      : null;
+  const eventId = access ? JSON.parse(access).eventId : "";
+
+  const { data, loading, error } = useTicketTypesWithSummaryForEvent(eventId);
+
+  console.log("Event Data:", data);
+
+  if (loading) return <p>Loading event data...</p>;
+  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
+  if (!data) return <p>No event data found</p>;
+
+  const event = data.event;
+
   return (
     <PreviewContainer>
       <ActionContainer>
         <ImageWrapper>
-          <Image src="/1.png" alt="Preview Action" fill priority />
-          {/* <Image src={event.image} alt={event.name} fill priority /> */}
+          <Image src={event.image || "/1.png"} alt={event.name} fill priority />
         </ImageWrapper>
 
         <PreviewDetails>
           <PreviewData>
             <PreviewDetailsSection>
               <PreviewDetailsSectionItem>
-                <h4>7. After Karura Forest Party</h4>
-                <ShareContainer>
-                  <Share size={24} color="#35938D" />
-                  <p>Share</p>
-                  <ShareDropdown>
-                    {/* {shareOptions.map((option) => ( */}
-                    {/* <li key={option.name}> */}
-                    <li>
-                      <a
-                        // href={option.url}
-                        href="#"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {/* {option.name} */}
-                        Option 1
-                      </a>
-                    </li>
-                    {/* ))} */}
-                  </ShareDropdown>
-                </ShareContainer>
+                <h4>{event.name}</h4>
               </PreviewDetailsSectionItem>
 
               <PreviewEvent>
@@ -67,26 +60,22 @@ const PreviewAction = () => {
                   width={20}
                   height={20}
                 />
-                <p>National Events</p>
-                {/* <p>{event.venue}</p> */}
+                <p>{event.venue}</p>
               </PreviewEvent>
             </PreviewDetailsSection>
 
             <PreviewTimeZone>
               <div>
                 <Calendar size={20} color="#444444" />
-                {/* <p>{event.to}</p> */}
-                <p>To time</p>
+                <p>{event.to}</p>
               </div>
               <div>
                 <LocationEdit size={20} color="#444444" />
-                {/* <p>{event.location}</p> */}
-                <p>Location</p>
+                <p>{event.location}</p>
               </div>
               <div>
                 <Timer size={20} color="#444444" />
-                  {/* {event.startTime} - {event.endTime} */}
-                  <p>1100hrs - 1200hrs</p>
+                {event.startTime} - {event.endTime}
               </div>
             </PreviewTimeZone>
           </PreviewData>
@@ -98,7 +87,7 @@ const PreviewAction = () => {
               <div
                 style={{
                   background: "#fff",
-                  padding: "0.2rem 0.8rem",
+                  padding: "0.5rem 0.9rem",
                   borderRadius: "1rem",
                 }}
               >
@@ -112,14 +101,8 @@ const PreviewAction = () => {
               About
             </MessageIcon>
             <AboutDetails>
-              {/* <p>{event.description}</p> */}
-              <p>
-                Lorem ipsum dolor, sit amet consectetur adipisicing elit. Nemo
-                vero mollitia officia. Dicta excepturi distinctio est voluptas
-                corporis sint, inventore, unde, ipsam vel placeat nesciunt
-                consectetur aperiam ipsum temporibus similique.
-              </p>
-              Descp
+              <p>{event.description || "No description provided."}</p>
+              <br />
               <p>This is an amazing event 🎟️</p>
             </AboutDetails>
           </div>
@@ -128,7 +111,7 @@ const PreviewAction = () => {
       <Divider />
 
       <StatsContainer>
-        <StatsComponent />
+        <StatsComponent summary={data} />
       </StatsContainer>
     </PreviewContainer>
   );
