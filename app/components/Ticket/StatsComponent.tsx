@@ -3,6 +3,7 @@ import React from "react";
 import styled from "styled-components";
 import CheckIn from "./CheckIn";
 import { TicketTypesWithSummaryForEvent } from "@/app/hooks/useTicketTypesSummaryForEvent";
+import { Attendee } from "@/app/hooks/useAttendeeForEvent";
 
 const StatsContainer = styled.div`
   display: flex;
@@ -58,7 +59,13 @@ const TabColumn = styled.div`
   flex-direction: column;
 `;
 
-const StatsComponent = ({ summary }: { summary?: TicketTypesWithSummaryForEvent }) => {
+const StatsComponent = ({
+  summary,
+  attendees,
+}: {
+  summary?: TicketTypesWithSummaryForEvent;
+  attendees?: Attendee[];
+}) => {
   return (
     <StatsContainer>
       <StatsTags>
@@ -67,7 +74,7 @@ const StatsComponent = ({ summary }: { summary?: TicketTypesWithSummaryForEvent 
 
       <TabContentRow>
         <TabColumn style={{ flex: "1 1 100%" }}>
-          <CheckIn summary={summary} />
+          <CheckIn summary={summary} attendees={attendees} />
         </TabColumn>
       </TabContentRow>
     </StatsContainer>

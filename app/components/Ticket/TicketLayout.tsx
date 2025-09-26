@@ -19,7 +19,6 @@ type TicketLayoutProps = {
 
 const TicketLayout: React.FC<TicketLayoutProps> = ({ children }) => {
   const router = useRouter();
-  const avatarRef = useRef<HTMLDivElement>(null);
 
   return (
     <LayoutWrapper>
@@ -40,7 +39,7 @@ const TicketLayout: React.FC<TicketLayoutProps> = ({ children }) => {
             <LogOut size={20} />
           </SignOutContainer>
 
-          <div
+          {/* <div
             style={{ position: "relative" }}
             ref={avatarRef}
             onClick={() => router.push("/dashboard-account-setup")}
@@ -56,7 +55,7 @@ const TicketLayout: React.FC<TicketLayoutProps> = ({ children }) => {
                 // cursor: "pointer",
               }}
             />
-          </div>
+          </div> */}
         </NavbarContent>
       </Navbar>
 
