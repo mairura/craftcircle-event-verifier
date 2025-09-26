@@ -176,8 +176,8 @@ export const IconWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 45px;
-  height: 45px;
+  width: 40px;
+  height: 40px;
   background: #aecdcb;
   border-radius: 8px;
   padding: 10px;

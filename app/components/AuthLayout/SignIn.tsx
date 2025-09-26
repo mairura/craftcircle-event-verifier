@@ -14,7 +14,10 @@ import { useRouter } from "next/navigation";
 
 const VERIFY_ACCESS_QUERY = `
   query VerifyAccess($email: String!, $eventId: String!, $securityCode: String!) {
-    verifyAccess(email: $email, eventId: $eventId, securityCode: $securityCode)
+    verifyAccess(email: $email, eventId: $eventId, securityCode: $securityCode){
+    message
+    success
+    }
   }
 `;
 
@@ -22,7 +25,7 @@ const verifyAccess = async (
   email: string,
   eventId: string,
   securityCode: string
-): Promise<boolean> => {
+): Promise<{ success: boolean; message: string }> => {
   const res = await fetch(process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT!, {
     method: "POST",
     headers: {
@@ -65,16 +68,15 @@ const AuthForm = () => {
     setFormSubmitting(true);
 
     try {
-      const isVerified = await verifyAccess(
+      const { success, message } = await verifyAccess(
         formData.email,
         formData.eventId,
         formData.secretKey
       );
 
-      if (isVerified) {
-        showSuccessToast("Access granted!");
+      if (success) {
+        showSuccessToast(message || "Access granted!");
 
-        // ✅ Save access in sessionStorage
         sessionStorage.setItem(
           "verifiedEventAccess",
           JSON.stringify({
@@ -87,7 +89,7 @@ const AuthForm = () => {
         // redirect to tickets
         router.push(`/tickets/${formData.eventId}`);
       } else {
-        showErrorToast("Access denied. Invalid credentials.");
+        showErrorToast(message || "Access denied. Invalid credentials.");
         setFormErrors({ secretKey: "Invalid credentials provided" });
       }
     } catch (err: unknown) {

@@ -19,7 +19,7 @@ import {
 } from "@/app/styles/TicketStyles/Stats.styles";
 import { showErrorToast, showSuccessToast } from "@/app/utils/toast";
 import { BrowserMultiFormatReader } from "@zxing/library";
-import { Clock, Wallet, Search, ScanBarcode } from "lucide-react";
+import { Clock, Wallet, Search, ScanBarcode, TicketCheck } from "lucide-react";
 import React, { useState } from "react";
 
 type Row = {
@@ -87,8 +87,19 @@ const CheckIn = ({
     }
   };
 
-  const filteredRows = attendees.filter((row) =>
-    row.recipient.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const allRows = [
+    ...attendees.map((a, i) => ({
+      id: i + 1,
+      code: a.ticketId,
+      name: a.recipient.name,
+      email: a.ticketType,
+      phone: a.scanned ? "✅" : "❌",
+    })),
+    ...rows, // add manually scanned tickets
+  ];
+
+  const filteredRows = allRows.filter((row) =>
+    row.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -118,7 +129,7 @@ const CheckIn = ({
 
           <CheckInCard>
             <IconWrapper>
-              <Wallet />
+              <TicketCheck />
             </IconWrapper>
             <CardText>
               <p>Total Tickets</p>
@@ -187,12 +198,12 @@ const CheckIn = ({
             </thead>
             <tbody>
               {filteredRows.map((row, index) => (
-                <tr key={row.ticketId}>
+                <tr key={row.id}>
                   <td>{index + 1}</td>
-                  <td>{row.ticketId}</td>
-                  <td>{row.recipient.name}</td>
-                  <td>{row.ticketType}</td>
-                  <td>{row.scanned ? "✅" : "❌"}</td>
+                  <td>{row.code}</td>
+                  <td>{row.name}</td>
+                  <td>{row.email}</td>
+                  <td>{row.phone}</td>
                 </tr>
               ))}
               {filteredRows.length === 0 && (
