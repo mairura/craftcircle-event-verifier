@@ -1,5 +1,6 @@
 "use client";
 
+import { Attendee } from "@/app/hooks/useAttendeeForEvent";
 import { useScanTicketFromQr } from "@/app/hooks/useScanTicketFromQr";
 import { TicketTypesWithSummaryForEvent } from "@/app/hooks/useTicketTypesSummaryForEvent";
 import {
@@ -29,14 +30,20 @@ type Row = {
   code: string;
 };
 
-const CheckIn = ({ summary }: { summary?: TicketTypesWithSummaryForEvent }) => {
-const [rows, setRows] = useState<Row[]>([]);
+const CheckIn = ({
+  summary,
+  attendees = [],
+}: {
+  summary?: TicketTypesWithSummaryForEvent;
+  attendees?: Attendee[];
+}) => {
+  const [rows, setRows] = useState<Row[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
-   const { scanTicket } = useScanTicketFromQr();
+  const { scanTicket } = useScanTicketFromQr();
 
-   const startScanner = async () => {
+  const startScanner = async () => {
     if (!videoRef.current) return;
     setScannerOpen(true);
 
@@ -80,8 +87,8 @@ const [rows, setRows] = useState<Row[]>([]);
     }
   };
 
-  const filteredRows = rows.filter((row) =>
-    row.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRows = attendees.filter((row) =>
+    row.recipient.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -105,17 +112,17 @@ const [rows, setRows] = useState<Row[]>([]);
             </IconWrapper>
             <CardText>
               <p>Total Sold</p>
-             <h3>{summary?.totalSold ?? 0}</h3>
+              <h3>{summary?.totalSold ?? 0}</h3>
             </CardText>
           </CheckInCard>
 
-           <CheckInCard>
+          <CheckInCard>
             <IconWrapper>
               <Wallet />
             </IconWrapper>
             <CardText>
               <p>Total Tickets</p>
-             <h3>{summary?.totalTickets ?? 0}</h3>
+              <h3>{summary?.totalTickets ?? 0}</h3>
             </CardText>
           </CheckInCard>
         </CheckInCards>
@@ -180,18 +187,18 @@ const [rows, setRows] = useState<Row[]>([]);
             </thead>
             <tbody>
               {filteredRows.map((row, index) => (
-                <tr key={row.id}>
+                <tr key={row.ticketId}>
                   <td>{index + 1}</td>
-                  <td>{row.code}</td>
-                  <td>{row.name}</td>
-                  <td>{row.email}</td>
-                  <td>{row.phone}</td>
+                  <td>{row.ticketId}</td>
+                  <td>{row.recipient.name}</td>
+                  <td>{row.ticketType}</td>
+                  <td>{row.scanned ? "✅" : "❌"}</td>
                 </tr>
               ))}
               {filteredRows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={5}
                     style={{ textAlign: "center", padding: "1rem" }}
                   >
                     No Attendees found
