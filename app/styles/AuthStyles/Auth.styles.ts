@@ -5,7 +5,7 @@ export const AuthFormContainer = styled.div`
   padding: 1rem;
 
   @media (max-width: 768px) {
-    padding: 0.5rem; /* tighter padding on mobile */
+    padding: 0.5rem;
   }
 `;
 
@@ -20,7 +20,6 @@ export const AuthContainer = styled.div`
   background-position: center;
   background-repeat: no-repeat;
   overflow: hidden;
-  border: 1px solid green;
 
   &::-webkit-scrollbar {
     display: none;
@@ -39,11 +38,12 @@ export const AuthContainer = styled.div`
 
 export const AuthImages = styled.div`
   width: 30%;
-  flex-shrink: 0;
+  flex-shrink: 1;
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
+  height: auto;
 
   img {
     height: 100%;
@@ -65,14 +65,13 @@ export const AuthWrapper = styled.div`
   align-items: stretch;
   border-radius: 20px;
   width: 80%;
-  gap: 7rem;
+  gap: 5rem;
+  height: 50vh;
 
-  /* Hide scrollbar for WebKit browsers (Chrome, Safari) */
   &::-webkit-scrollbar {
     display: none;
   }
 
-  /* Optional: hide scrollbar for Firefox */
   scrollbar-width: none;
 
   @media (max-width: 1110px) {
@@ -100,12 +99,10 @@ export const AuthBoxContainer = styled.div`
   width: 100%;
   flex: 1;
 
-  /* Hide scrollbar for WebKit browsers (Chrome, Safari) */
   &::-webkit-scrollbar {
     display: none;
   }
 
-  /* Optional: hide scrollbar for Firefox */
   scrollbar-width: none;
 
   @media (max-width: 768px) {
@@ -128,8 +125,8 @@ export const AuthFormWrapper = styled.div`
   max-width: 35vw;
   min-width: 320px;
   //   overflow-y: auto;
-  align-self: stretch;
-  flex-shrink: 0;
+  // align-self: stretch;
+  // flex-shrink: 0;
   overflow-y: hidden;
 
   &::-webkit-scrollbar {
@@ -138,9 +135,13 @@ export const AuthFormWrapper = styled.div`
 
   scrollbar-width: none;
 
+  @media (max-width: 1110px) {
+    max-width: 50vw;
+    padding: 30px;
+  }
+
   @media (max-width: 768px) {
-    width: 100vw;
-    max-width: 100%; 
+    max-width: 100%;
     min-width: unset;
     width: 100%;
     padding: 2rem 1rem;
@@ -195,7 +196,7 @@ export const ImageBox = styled.div`
 export const AuthHeader = styled.div`
   color: #050505;
   font-weight: 700;
-  font-size: clamp(1rem, -4rem + 16vw, 2.5rem);
+  font-size: clamp(1rem, -4rem + 16vw, 2rem);
   padding-bottom: 5px;
   font-family: Outfit;
   font-style: normal;
@@ -239,6 +240,7 @@ export const AuthFields = styled.div`
   flex-direction: column;
   padding-top: 2rem;
   width: 100%;
+  // gap: clamp(0.5rem, 2vw, 2rem);
 `;
 
 export const FieldNames = styled.div`
@@ -268,8 +270,7 @@ export const AuthCredentials = styled.div`
 export const FieldBox = styled.div`
   display: flex;
   flex-direction: column;
-  // align-items: flex-start;
-  gap: 5px;
+  gap: clamp(0.25rem, 1vw, 0.5rem);
   align-self: stretch;
   width: 100%;
 
@@ -367,7 +368,7 @@ export const OTPBox = styled.div`
 
 export const StyledInput = styled.input`
   display: flex;
-  height: 45px;
+  height: clamp(40px, 4vh, 50px);
   padding: 0 16px;
   align-items: center;
   gap: 10px;

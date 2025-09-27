@@ -74,12 +74,12 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
               <AuthImages>
                 <Image
                   src="/authImage.svg"
-                  width={460}
-                  height={694}
-                  alt=""
+                  alt="Auth Image"
+                  fill
+                  style={{ objectFit: "contain" }}
                   priority
                   unoptimized
-                />{" "}
+                />
               </AuthImages>
               <AuthFormWrapper>{children}</AuthFormWrapper>
             </AuthWrapper>
