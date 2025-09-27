@@ -18,9 +18,9 @@ import {
   TableWrapper,
 } from "@/app/styles/TicketStyles/Stats.styles";
 import { showErrorToast, showSuccessToast } from "@/app/utils/toast";
-import { BrowserMultiFormatReader } from "@zxing/library";
 import { Clock, Wallet, Search, ScanBarcode, TicketCheck } from "lucide-react";
 import React, { useState } from "react";
+import { QrReader } from "react-qr-reader";
 
 type Row = {
   id: number;
@@ -37,37 +37,17 @@ const CheckIn = ({
   summary?: TicketTypesWithSummaryForEvent;
   attendees?: Attendee[];
 }) => {
-  const [rows, setRows] = useState<Row[]>([]);
+  const [scannedRows, setScannedRows] = useState<Row[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
   const { scanTicket } = useScanTicketFromQr();
-  const codeReader = React.useRef(new BrowserMultiFormatReader());
 
-  const startScanner = async () => {
-    if (!videoRef.current) return;
-    setScannerOpen(true);
+  // Handles QR scan result
+  const handleScan = async (scannedText: string | null) => {
+    if (!scannedText) return;
 
     try {
-      const devices = await codeReader.current.listVideoInputDevices();
-      if (devices.length === 0) {
-        showErrorToast("No camera found on this device.");
-        return;
-      }
-
-      // Prefer back camera if available
-      const backCamera = devices.find((d) =>
-        d.label.toLowerCase().includes("back")
-      );
-      const deviceId = backCamera?.deviceId || devices[0].deviceId;
-
-      const result = await codeReader.current.decodeOnceFromVideoDevice(
-        deviceId,
-        videoRef.current
-      );
-
-      const scannedCode = result.getText();
-      const ticket = await scanTicket(scannedCode);
+      const ticket = await scanTicket(scannedText); // payload for mutation
 
       if (ticket) {
         if (ticket.scanned) {
@@ -75,23 +55,34 @@ const CheckIn = ({
         } else {
           showErrorToast("Ticket invalid or already used ❌");
         }
+
+        // Add scanned ticket to state
+        setScannedRows(prev => [
+          ...prev,
+          {
+            id: prev.length + 1,
+            name: `Ticket #${ticket.id}`,
+            email: "",
+            phone: "",
+            code: ticket.transactionId,
+          },
+        ]);
       }
 
       setScannerOpen(false);
-      codeReader.current.reset();
     } catch (err) {
       console.error(err);
       showErrorToast("Scanning failed. Try again.");
-      setScannerOpen(false);
     }
   };
 
-  const stopScanner = () => {
-    codeReader.current.reset();
-    setScannerOpen(false);
+  // Handles camera errors
+  const handleError = (err: Error) => {
+    console.error(err);
+    showErrorToast("Camera error. Please allow camera access.");
   };
 
-  const filteredRows = attendees.filter((row) =>
+  const filteredRows = attendees.filter(row =>
     row.recipient.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -140,13 +131,14 @@ const CheckIn = ({
             type="search"
             placeholder="Search attendees..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
           />
-          <PlusIconWrapper onClick={startScanner}>
+          <PlusIconWrapper onClick={() => setScannerOpen(true)}>
             <ScanBarcode size={16} color="#444" />
           </PlusIconWrapper>
         </SearchContainer>
 
+        {/* Scanner Overlay */}
         {scannerOpen && (
           <div
             style={{
@@ -163,14 +155,17 @@ const CheckIn = ({
               flexDirection: "column",
             }}
           >
-            <video
-              ref={videoRef}
-              style={{ width: "90%", maxWidth: 400, borderRadius: "16px" }}
-              autoPlay
+            <QrReader
+              constraints={{ facingMode: "environment" }}
+              onResult={(result, error) => {
+                if (!!result) handleScan(result.getText());
+                if (!!error) handleError(error);
+              }}
+              videoStyle={{ width: "90%", maxWidth: 400, borderRadius: 16 }}
             />
             <button
               style={{ marginTop: "1rem", padding: "0.5rem 1rem" }}
-              onClick={stopScanner}
+              onClick={() => setScannerOpen(false)}
             >
               Close Scanner
             </button>
@@ -190,6 +185,18 @@ const CheckIn = ({
               </tr>
             </thead>
             <tbody>
+              {/* Use scannedRows for tickets scanned via QR */}
+              {scannedRows.map((row, index) => (
+                <tr key={row.code}>
+                  <td>{index + 1}</td>
+                  <td>{row.code}</td>
+                  <td>{row.name}</td>
+                  <td>{row.email}</td>
+                  <td>{row.phone}</td>
+                </tr>
+              ))}
+
+              {/* Existing attendees filtered */}
               {filteredRows.map((row, index) => (
                 <tr key={row.ticketId}>
                   <td>{index + 1}</td>
@@ -199,12 +206,10 @@ const CheckIn = ({
                   <td>{row.scanned ? "✅" : "❌"}</td>
                 </tr>
               ))}
-              {filteredRows.length === 0 && (
+
+              {filteredRows.length === 0 && scannedRows.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={5}
-                    style={{ textAlign: "center", padding: "1rem" }}
-                  >
+                  <td colSpan={5} style={{ textAlign: "center", padding: "1rem" }}>
                     No Attendees found
                   </td>
                 </tr>
