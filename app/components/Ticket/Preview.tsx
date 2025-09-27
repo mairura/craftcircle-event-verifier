@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, LocationEdit, Share, Timer } from "lucide-react";
+import { Calendar, LocationEdit, Timer } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import StatsComponent from "./StatsComponent";
@@ -37,7 +37,6 @@ const PreviewAction = () => {
     error: attendeesError,
   } = useAttendeesForEvent(eventId);
 
-  console.log("Event Data Atte:", attendees);
 
   if (loading) return <p>Loading event data...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
@@ -90,21 +89,7 @@ const PreviewAction = () => {
         <AboutPreview>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <MessageIcon>
-              <div
-                style={{
-                  background: "#fff",
-                  padding: "0.5rem 0.9rem",
-                  borderRadius: "1rem",
-                }}
-              >
-                <Image
-                  src="/message.svg"
-                  height={18}
-                  width={18}
-                  alt="message"
-                />
-              </div>
-              About
+              About the Event
             </MessageIcon>
             <AboutDetails>
               <p>{event.description || "No description provided."}</p>
