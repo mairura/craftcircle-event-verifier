@@ -89,21 +89,7 @@ const PreviewAction = () => {
         <AboutPreview>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <MessageIcon>
-              <div
-                style={{
-                  background: "#fff",
-                  padding: "0.5rem 0.9rem",
-                  borderRadius: "1rem",
-                }}
-              >
-                <Image
-                  src="/message.svg"
-                  height={18}
-                  width={18}
-                  alt="message"
-                />
-              </div>
-              About
+              About the Event
             </MessageIcon>
             <AboutDetails>
               <p>{event.description || "No description provided."}</p>

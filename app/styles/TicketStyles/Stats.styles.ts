@@ -180,7 +180,7 @@ export const IconWrapper = styled.div`
   height: 40px;
   background: #aecdcb;
   border-radius: 8px;
-  padding: 10px;
+  padding: 15px;
 
   @media (max-width: 768px) {
     width: 32px;

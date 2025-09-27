@@ -19,7 +19,7 @@ import {
 } from "@/app/styles/TicketStyles/Stats.styles";
 import { showErrorToast, showSuccessToast } from "@/app/utils/toast";
 import { BrowserMultiFormatReader } from "@zxing/library";
-import { Clock, Wallet, Search, ScanBarcode } from "lucide-react";
+import { Clock, Wallet, Search, ScanBarcode, TicketCheck } from "lucide-react";
 import React, { useState } from "react";
 
 type Row = {
@@ -118,7 +118,7 @@ const CheckIn = ({
 
           <CheckInCard>
             <IconWrapper>
-              <Wallet />
+              <TicketCheck />
             </IconWrapper>
             <CardText>
               <p>Total Tickets</p>
