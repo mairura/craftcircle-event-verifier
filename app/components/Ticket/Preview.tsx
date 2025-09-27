@@ -8,6 +8,7 @@ import {
   AboutDetails,
   AboutPreview,
   ActionContainer,
+  CenteredMessage,
   Divider,
   ImageWrapper,
   MessageIcon,
@@ -21,6 +22,7 @@ import {
   StatsContainer,
 } from "@/app/styles/TicketStyles/Preview.styles";
 import { useTicketTypesWithSummaryForEvent } from "@/app/hooks/useTicketTypesSummaryForEvent";
+import PreviewSkeleton from "./PreviewSkeleton";
 
 const PreviewAction = () => {
   const access =
@@ -31,9 +33,20 @@ const PreviewAction = () => {
 
   const { data, loading, error } = useTicketTypesWithSummaryForEvent(eventId);
 
-  if (loading) return <p>Loading event data...</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!data) return <p>No event data found</p>;
+  if (loading) return <PreviewSkeleton />;
+  if (error)
+    return (
+      <CenteredMessage>
+        <p style={{ color: "red" }}>⚠️ Error: {error}</p>
+      </CenteredMessage>
+    );
+
+  if (!data)
+    return (
+      <CenteredMessage>
+        <p>No event data found ❌</p>
+      </CenteredMessage>
+    );
 
   const event = data.event;
 

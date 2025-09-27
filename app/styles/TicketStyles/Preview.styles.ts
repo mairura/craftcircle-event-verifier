@@ -322,3 +322,13 @@ export const StatsContainer = styled.div`
     height: 100%;
   }
 `;
+
+export const CenteredMessage = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh; /* centers vertically on page */
+  text-align: center;
+  font-size: 1.1rem;
+  color: #444;
+`;
