@@ -67,7 +67,7 @@ export const CardText = styled.div`
     margin: 0;
 
     @media (max-width: 768px) {
-      font-size: 0.75rem;
+      font-size: 10px
     }
   }
 
