@@ -30,11 +30,22 @@ export default function TicketsLayout({
 
   if (isVerified === null) {
     return (
-      <div>
-        <Spinner />
-        Loading ...
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh", // full screen height
+          width: "100%", // full width
+        }}
+      >
+        <Spinner color="#35938d" />
+        <p style={{ marginTop: "1rem", fontSize: "1rem", color: "#444" }}>
+          Loading...
+        </p>
       </div>
-    ); // show spinner while checking
+    );
   }
 
   if (!isVerified) {
