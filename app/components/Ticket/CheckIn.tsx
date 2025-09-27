@@ -197,16 +197,26 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
               }}
             >
               <Scanner
-                onScan={(detectedCodes) =>
-                  handleScanQr(detectedCodes[0]?.rawValue || null)
-                }
+                onScan={(detectedCodes) => {
+                  if (detectedCodes.length === 0) return;
+                  console.log("Detected codes:", detectedCodes);
+                  handleScanQr(detectedCodes[0].rawValue);
+                }}
                 onError={handleError}
-                constraints={{ facingMode: "environment" }}
+                constraints={{ facingMode: { exact: "environment" } }}
               />
             </div>
 
             <button
-              style={{ marginTop: "1rem", padding: "0.5rem 1rem" }}
+              style={{
+                marginTop: "1rem",
+                padding: "0.5rem 1rem",
+                color: "#fff",
+                background: "#ff4d4f",
+                border: "none",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
               onClick={() => setScannerOpen(false)}
             >
               Close Scanner
