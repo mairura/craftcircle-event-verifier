@@ -24,8 +24,8 @@ import {
 } from "@/app/styles/TicketStyles/Stats.styles";
 import { showErrorToast, showSuccessToast } from "@/app/utils/toast";
 import { Clock, Wallet, ScanBarcode, TicketCheck } from "lucide-react";
-import React, { useState } from "react";
-import { Scanner } from "@yudiel/react-qr-scanner"; // Correct import
+import React, { useState, useRef } from "react";
+import { Scanner, IDetectedBarcode } from "@yudiel/react-qr-scanner";
 
 type Row = {
   id: number;
@@ -45,12 +45,21 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const [scannedRows, setScannedRows] = useState<Row[]>([]);
   const [scannerOpen, setScannerOpen] = useState(false);
 
+  const lastScannedCode = useRef<string | null>(null); // Prevent multiple scans
+
   const { scanTicket: scanTicketFromQr } = useScanTicketFromQr();
   const { scanTicket: scanTicketById } = useScanTicket();
 
   /** Handle QR scan */
   const handleScanQr = async (scannedText: string | null) => {
     if (!scannedText) return;
+
+    // Prevent duplicate scans of the same QR code
+    if (lastScannedCode.current === scannedText) return;
+    lastScannedCode.current = scannedText;
+
+    console.log("QR payload detected:", scannedText);
+
     try {
       const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(
         scannedText
@@ -73,10 +82,12 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       ]);
 
       setTicketId(ticket.transactionId);
-      setScannerOpen(false);
+      setScannerOpen(false); // Close camera after successful scan
+      lastScannedCode.current = null; // Reset for next scan
     } catch (err) {
       console.error(err);
       showErrorToast("QR scanning failed.");
+      lastScannedCode.current = null;
     }
   };
 
@@ -172,6 +183,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
           </PlusIconWrapper>
         </SearchContainer>
 
+        {/* QR Scanner */}
         {scannerOpen && (
           <div
             style={{
@@ -193,14 +205,20 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
                 width: "90%",
                 maxWidth: 400,
                 borderRadius: 16,
-                overflow: "hidden", // optional, for rounded corners
+                overflow: "hidden",
               }}
             >
               <Scanner
-                onScan={(detectedCodes) => {
+                onScan={(detectedCodes: IDetectedBarcode[]) => {
                   if (detectedCodes.length === 0) return;
-                  console.log("Detected codes:", detectedCodes);
-                  handleScanQr(detectedCodes[0].rawValue);
+
+                  const payload = detectedCodes[0].rawValue;
+                  console.log("Detected codes from Scanner:", detectedCodes);
+
+                  // Show toast immediately when payload is read
+                  showSuccessToast(`QR payload detected: ${payload}`);
+
+                  handleScanQr(payload); // Continue with backend validation
                 }}
                 onError={handleError}
                 constraints={{ facingMode: { exact: "environment" } }}
