@@ -37,30 +37,25 @@ const PreviewAction = () => {
     error: attendeesError,
   } = useAttendeesForEvent(eventId);
 
-  const event = data?.event;
+
+  if (loading) return <p>Loading event data...</p>;
+  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
+  if (!data) return <p>No event data found</p>;
+
+  const event = data.event;
 
   return (
     <PreviewContainer>
       <ActionContainer>
         <ImageWrapper>
-          {event?.image ? (
-            <Image src={event.image} alt={event.name} fill priority />
-          ) : (
-            <Image src="/1.png" alt="fallback" fill priority />
-          )}
+          <Image src={event.image || "/1.png"} alt={event.name} fill priority />
         </ImageWrapper>
 
         <PreviewDetails>
           <PreviewData>
             <PreviewDetailsSection>
               <PreviewDetailsSectionItem>
-                <h4>
-                  {loading
-                    ? "Loading..."
-                    : error
-                    ? "Error loading event"
-                    : event?.name ?? "No event name"}
-                </h4>
+                <h4>{event.name}</h4>
               </PreviewDetailsSectionItem>
 
               <PreviewEvent>
@@ -70,24 +65,22 @@ const PreviewAction = () => {
                   width={20}
                   height={20}
                 />
-                <p>{event?.venue ?? "Unknown venue"}</p>
+                <p>{event.venue}</p>
               </PreviewEvent>
             </PreviewDetailsSection>
 
             <PreviewTimeZone>
               <div>
                 <Calendar size={20} color="#444444" />
-                <p>{event?.to ?? "N/A"}</p>
+                <p>{event.to}</p>
               </div>
               <div>
                 <LocationEdit size={20} color="#444444" />
-                <p>{event?.location ?? "N/A"}</p>
+                <p>{event.location}</p>
               </div>
               <div>
                 <Timer size={20} color="#444444" />
-                {event?.startTime && event?.endTime
-                  ? `${event.startTime} - ${event.endTime}`
-                  : "N/A"}
+                {event.startTime} - {event.endTime}
               </div>
             </PreviewTimeZone>
           </PreviewData>
@@ -113,10 +106,7 @@ const PreviewAction = () => {
               About
             </MessageIcon>
             <AboutDetails>
-              <p>
-                {event?.description ??
-                  (loading ? "Loading description..." : "No description.")}
-              </p>
+              <p>{event.description || "No description provided."}</p>
               <br />
               <p>This is an amazing event 🎟️</p>
             </AboutDetails>
@@ -126,14 +116,7 @@ const PreviewAction = () => {
       <Divider />
 
       <StatsContainer>
-        {attendeesLoading && <p>Loading attendees...</p>}
-        {attendeesError && (
-          <p style={{ color: "red" }}>Error loading attendees</p>
-        )}
-        <StatsComponent
-          summary={data ?? undefined}
-          attendees={attendees ?? []}
-        />
+        <StatsComponent summary={data} attendees={attendees} />
       </StatsContainer>
     </PreviewContainer>
   );
