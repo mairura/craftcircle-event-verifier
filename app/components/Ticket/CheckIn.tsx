@@ -52,23 +52,25 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const { scanTicket: scanTicketFromQr } = useScanTicketFromQr();
   const { scanTicket: scanTicketById } = useScanTicket();
 
-  /** Handle QR scan */
   const handleScanQr = async (payload: string | null) => {
     if (!payload) return;
 
     try {
-      console.log("Payload detected:", payload);
-      showSuccessToast(`QR payload detected: ${payload}`);
+      const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(
+        payload
+      );
 
-      const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(payload);
       if (!ticket) {
-        showErrorToast("Failed to fetch ticket details");
+        showErrorToast("Invalid QR code.");
         return;
       }
 
-      showSuccessToast(ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌");
+      if (ticket.scanned) {
+        showErrorToast("Ticket has already been scanned.");
+      } else {
+        showSuccessToast("Valid ticket ✅");
+      }
 
-      // Add to table
       setScannedRows((prev) => [
         ...prev,
         {
@@ -85,10 +87,16 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       ]);
 
       setTicketId(ticket.transactionId);
-      setScannerOpen(false); // automatically close camera
-    } catch (err) {
+      setScannerOpen(false);
+    } catch (err: unknown) {
       console.error(err);
-      showErrorToast("QR scanning failed.");
+
+      let msg = "QR scanning failed. Please try again.";
+      if (err instanceof Error) {
+        msg = err.message;
+      }
+
+      showErrorToast(msg);
     }
   };
 
@@ -97,14 +105,17 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
     showErrorToast("Camera error. Please allow camera access.");
   };
 
-  /** Handle manual ticket ID scan */
   const handleScanByTicketId = async () => {
     if (!ticketId) return;
     try {
-      const ticket: ScannedTicketWithUser | null = await scanTicketById(ticketId);
+      const ticket: ScannedTicketWithUser | null = await scanTicketById(
+        ticketId
+      );
       if (!ticket) return showErrorToast("Ticket not found.");
 
-      showSuccessToast(ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌");
+      showSuccessToast(
+        ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌"
+      );
 
       setScannedRows((prev) => [
         ...prev,
@@ -257,17 +268,59 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
               {filteredByTicketId.map((row, index) => (
                 <tr key={row.transactionId}>
                   <td>{index + 1}</td>
-                  <td>{row.transactionId}</td>
-                  <td>{row.name}</td>
+                  <td
+                    title={row.transactionId}
+                    style={{
+                      maxWidth: 120,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {row.transactionId}
+                  </td>
+                  <td
+                    title={row.name}
+                    style={{
+                      maxWidth: 150,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {row.name}
+                  </td>
                   <td>{row.price}</td>
                   <td>{row.scanned ? "✅" : "❌"}</td>
-                  <td>{new Date(row.createdAt).toLocaleString()}</td>
-                  <td>{row.eventId}</td>
+                  <td
+                    style={{
+                      maxWidth: 140,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {new Date(row.createdAt).toLocaleString()}
+                  </td>
+                  <td
+                    title={row.eventId}
+                    style={{
+                      maxWidth: 100,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {row.eventId}
+                  </td>
                 </tr>
               ))}
               {noRecordsFound && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: "1rem" }}>
+                  <td
+                    colSpan={7}
+                    style={{ textAlign: "center", padding: "1rem" }}
+                  >
                     No record found
                   </td>
                 </tr>
