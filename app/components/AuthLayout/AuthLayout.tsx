@@ -1,10 +1,22 @@
-
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import { motion } from "framer-motion";
-import { AuthPageWrapper, Logo, Nav, NavbarContainer, NavbarWrapper } from "@/app/styles/AuthStyles/Navbar.styles";
-import { AuthBoxContainer, AuthContainer, AuthFormWrapper, AuthImages, AuthWrapper, BackButton } from "@/app/styles/AuthStyles/Auth.styles";
+import {
+  AuthPageWrapper,
+  Logo,
+  Nav,
+  NavbarContainer,
+  NavbarWrapper,
+} from "@/app/styles/AuthStyles/Navbar.styles";
+import {
+  AuthBoxContainer,
+  AuthContainer,
+  AuthFormWrapper,
+  AuthImages,
+  AuthWrapper,
+  BackButton,
+} from "@/app/styles/AuthStyles/Auth.styles";
 import { useRouter } from "next/navigation";
 
 type AuthLayoutProps = {
@@ -60,7 +72,14 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
           <AuthBoxContainer>
             <AuthWrapper>
               <AuthImages>
-                <Image src="/authImage.svg" width={460} height={694} alt="" />{" "}
+                <Image
+                  src="/authImage.svg"
+                  width={460}
+                  height={694}
+                  alt=""
+                  priority
+                  unoptimized
+                />{" "}
               </AuthImages>
               <AuthFormWrapper>{children}</AuthFormWrapper>
             </AuthWrapper>
