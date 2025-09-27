@@ -25,7 +25,7 @@ import {
 import { showErrorToast, showSuccessToast } from "@/app/utils/toast";
 import { Clock, Wallet, ScanBarcode, TicketCheck } from "lucide-react";
 import React, { useState } from "react";
-import { QrReader } from "react-qr-reader";
+import { Scanner } from "@yudiel/react-qr-scanner"; // Correct import
 
 type Row = {
   id: number;
@@ -44,42 +44,22 @@ interface CheckInProps {
 const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const [scannedRows, setScannedRows] = useState<Row[]>([]);
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [deviceId, setDeviceId] = useState<string | undefined>();
 
   const { scanTicket: scanTicketFromQr } = useScanTicketFromQr();
   const { scanTicket: scanTicketById } = useScanTicket();
-
-  /** Get back camera device ID */
-  const getBackCameraDeviceId = async () => {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter((d) => d.kind === "videoinput");
-      const backCamera = videoDevices.find((d) =>
-        d.label.toLowerCase().includes("back")
-      );
-      return backCamera?.deviceId || videoDevices[0]?.deviceId;
-    } catch (err) {
-      console.error(err);
-      return undefined;
-    }
-  };
-
-  /** Open QR scanner */
-  const openScanner = async () => {
-    const id = await getBackCameraDeviceId();
-    if (!id) return showErrorToast("No camera found on this device.");
-    setDeviceId(id);
-    setScannerOpen(true);
-  };
 
   /** Handle QR scan */
   const handleScanQr = async (scannedText: string | null) => {
     if (!scannedText) return;
     try {
-      const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(scannedText);
+      const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(
+        scannedText
+      );
       if (!ticket) return;
 
-      showSuccessToast(ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌");
+      showSuccessToast(
+        ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌"
+      );
 
       setScannedRows((prev) => [
         ...prev,
@@ -92,7 +72,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         },
       ]);
 
-      setTicketId(ticket.transactionId); // update ticketId in parent
+      setTicketId(ticket.transactionId);
       setScannerOpen(false);
     } catch (err) {
       console.error(err);
@@ -100,14 +80,23 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
     }
   };
 
+  const handleError = (err: unknown) => {
+    console.error(err);
+    showErrorToast("Camera error. Please allow camera access.");
+  };
+
   /** Handle manual ticket ID scan */
   const handleScanByTicketId = async () => {
     if (!ticketId) return;
     try {
-      const ticket: ScannedTicketWithUser | null = await scanTicketById(ticketId);
+      const ticket: ScannedTicketWithUser | null = await scanTicketById(
+        ticketId
+      );
       if (!ticket) return showErrorToast("Ticket not found.");
 
-      showSuccessToast(ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌");
+      showSuccessToast(
+        ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌"
+      );
 
       setScannedRows((prev) => [
         ...prev,
@@ -127,12 +116,6 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
     }
   };
 
-  /** Handle camera error */
-  const handleError = (err: unknown) => {
-    console.error(err);
-    showErrorToast("Camera error. Please allow camera access.");
-  };
-
   const filteredByTicketId = ticketId
     ? scannedRows.filter((r) => r.code.includes(ticketId))
     : scannedRows;
@@ -145,21 +128,27 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         {/* Cards */}
         <CheckInCards>
           <CheckInCard>
-            <IconWrapper><Clock /></IconWrapper>
+            <IconWrapper>
+              <Clock />
+            </IconWrapper>
             <CardText>
               <p>Tickets Checked In</p>
               <h3>{summary?.totalCheckedIn ?? 0}</h3>
             </CardText>
           </CheckInCard>
           <CheckInCard>
-            <IconWrapper><Wallet /></IconWrapper>
+            <IconWrapper>
+              <Wallet />
+            </IconWrapper>
             <CardText>
               <p>Total Sold</p>
               <h3>{summary?.totalSold ?? 0}</h3>
             </CardText>
           </CheckInCard>
           <CheckInCard>
-            <IconWrapper><TicketCheck /></IconWrapper>
+            <IconWrapper>
+              <TicketCheck />
+            </IconWrapper>
             <CardText>
               <p>Total Tickets</p>
               <h3>{summary?.totalTickets ?? 0}</h3>
@@ -178,13 +167,12 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
           <PlusIconWrapper onClick={handleScanByTicketId}>
             <TicketCheck size={16} color="#444" />
           </PlusIconWrapper>
-          <PlusIconWrapper onClick={openScanner}>
+          <PlusIconWrapper onClick={() => setScannerOpen(true)}>
             <ScanBarcode size={16} color="#444" />
           </PlusIconWrapper>
         </SearchContainer>
 
-        {/* QR Scanner */}
-        {scannerOpen && deviceId && (
+        {scannerOpen && (
           <div
             style={{
               position: "fixed",
@@ -200,14 +188,23 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
               flexDirection: "column",
             }}
           >
-            <QrReader
-              constraints={{ deviceId: { exact: deviceId } }}
-              onResult={(result, error) => {
-                if (result) handleScanQr(result.getText());
-                if (error) handleError(error);
+            <div
+              style={{
+                width: "90%",
+                maxWidth: 400,
+                borderRadius: 16,
+                overflow: "hidden", // optional, for rounded corners
               }}
-              videoStyle={{ width: "90%", maxWidth: 400, borderRadius: 16 }}
-            />
+            >
+              <Scanner
+                onScan={(detectedCodes) =>
+                  handleScanQr(detectedCodes[0]?.rawValue || null)
+                }
+                onError={handleError}
+                constraints={{ facingMode: "environment" }}
+              />
+            </div>
+
             <button
               style={{ marginTop: "1rem", padding: "0.5rem 1rem" }}
               onClick={() => setScannerOpen(false)}
@@ -241,7 +238,10 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
               ))}
               {noRecordsFound && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: "1rem" }}>
+                  <td
+                    colSpan={5}
+                    style={{ textAlign: "center", padding: "1rem" }}
+                  >
                     No record found
                   </td>
                 </tr>
