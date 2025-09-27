@@ -1,5 +1,14 @@
 import styled, { keyframes } from "styled-components";
 
+export const AuthFormContainer = styled.div`
+  width: 100%;
+  padding: 1rem;
+
+  @media (max-width: 768px) {
+    padding: 0.5rem; /* tighter padding on mobile */
+  }
+`;
+
 export const AuthContainer = styled.div`
   display: flex;
   width: 100%;
@@ -11,6 +20,7 @@ export const AuthContainer = styled.div`
   background-position: center;
   background-repeat: no-repeat;
   overflow: hidden;
+  border: 1px solid green;
 
   &::-webkit-scrollbar {
     display: none;
@@ -23,6 +33,7 @@ export const AuthContainer = styled.div`
     justify-content: center;
     padding-top: 3rem;
     height: 100%;
+    width: 100%;
   }
 `;
 
@@ -128,6 +139,9 @@ export const AuthFormWrapper = styled.div`
   scrollbar-width: none;
 
   @media (max-width: 768px) {
+    width: 100vw;
+    max-width: 100%; 
+    min-width: unset;
     width: 100%;
     padding: 2rem 1rem;
     border-radius: 0;
@@ -187,7 +201,7 @@ export const AuthHeader = styled.div`
   font-style: normal;
 
   @media (max-width: 768px) {
-    font-size: 28px;
+    font-size: 20px;
   }
 `;
 
@@ -224,6 +238,7 @@ export const AuthFields = styled.div`
   display: flex;
   flex-direction: column;
   padding-top: 2rem;
+  width: 100%;
 `;
 
 export const FieldNames = styled.div`
@@ -253,9 +268,10 @@ export const AuthCredentials = styled.div`
 export const FieldBox = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  // align-items: flex-start;
   gap: 5px;
   align-self: stretch;
+  width: 100%;
 
   label {
     color: #1a1a1a;

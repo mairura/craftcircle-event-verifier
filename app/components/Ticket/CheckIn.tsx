@@ -42,20 +42,31 @@ const CheckIn = ({
   const [scannerOpen, setScannerOpen] = useState(false);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const { scanTicket } = useScanTicketFromQr();
+  const codeReader = React.useRef(new BrowserMultiFormatReader());
 
   const startScanner = async () => {
     if (!videoRef.current) return;
     setScannerOpen(true);
 
-    const codeReader = new BrowserMultiFormatReader();
     try {
-      const result = await codeReader.decodeOnceFromVideoDevice(
-        undefined,
+      const devices = await codeReader.current.listVideoInputDevices();
+      if (devices.length === 0) {
+        showErrorToast("No camera found on this device.");
+        return;
+      }
+
+      // Prefer back camera if available
+      const backCamera = devices.find((d) =>
+        d.label.toLowerCase().includes("back")
+      );
+      const deviceId = backCamera?.deviceId || devices[0].deviceId;
+
+      const result = await codeReader.current.decodeOnceFromVideoDevice(
+        deviceId,
         videoRef.current
       );
-      const scannedCode = result.getText();
 
-      // 🔗 Call GraphQL mutation here
+      const scannedCode = result.getText();
       const ticket = await scanTicket(scannedCode);
 
       if (ticket) {
@@ -64,27 +75,20 @@ const CheckIn = ({
         } else {
           showErrorToast("Ticket invalid or already used ❌");
         }
-
-        // Optional: Add scanned ticket to table
-        setRows((prev) => [
-          ...prev,
-          {
-            id: prev.length + 1,
-            name: `Ticket #${ticket.id}`,
-            email: "",
-            phone: "",
-            code: ticket.transactionId,
-          },
-        ]);
       }
 
       setScannerOpen(false);
-      codeReader.reset();
+      codeReader.current.reset();
     } catch (err) {
       console.error(err);
       showErrorToast("Scanning failed. Try again.");
       setScannerOpen(false);
     }
+  };
+
+  const stopScanner = () => {
+    codeReader.current.reset();
+    setScannerOpen(false);
   };
 
   const filteredRows = attendees.filter((row) =>
@@ -166,7 +170,7 @@ const CheckIn = ({
             />
             <button
               style={{ marginTop: "1rem", padding: "0.5rem 1rem" }}
-              onClick={() => setScannerOpen(false)}
+              onClick={stopScanner}
             >
               Close Scanner
             </button>
