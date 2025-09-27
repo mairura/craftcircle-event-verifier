@@ -40,14 +40,41 @@ const CheckIn = ({
   const [scannedRows, setScannedRows] = useState<Row[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [deviceId, setDeviceId] = useState<string | undefined>();
   const { scanTicket } = useScanTicketFromQr();
+
+  // Get back camera device ID
+  const getBackCameraDeviceId = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === "videoinput");
+      console.log("Video devices:", videoDevices);
+      const backCamera = videoDevices.find(d =>
+        d.label.toLowerCase().includes("back")
+      );
+      return backCamera?.deviceId || videoDevices[0]?.deviceId;
+    } catch (err) {
+      console.error("Error enumerating devices", err);
+      return undefined;
+    }
+  };
+
+  const openScanner = async () => {
+    const id = await getBackCameraDeviceId();
+    if (!id) {
+      showErrorToast("No camera found on this device.");
+      return;
+    }
+    setDeviceId(id);
+    setScannerOpen(true);
+  };
 
   // Handles QR scan result
   const handleScan = async (scannedText: string | null) => {
     if (!scannedText) return;
 
     try {
-      const ticket = await scanTicket(scannedText); // payload for mutation
+      const ticket = await scanTicket(scannedText);
 
       if (ticket) {
         if (ticket.scanned) {
@@ -56,7 +83,6 @@ const CheckIn = ({
           showErrorToast("Ticket invalid or already used ❌");
         }
 
-        // Add scanned ticket to state
         setScannedRows(prev => [
           ...prev,
           {
@@ -76,8 +102,7 @@ const CheckIn = ({
     }
   };
 
-  // Handles camera errors
-  const handleError = (err: Error) => {
+  const handleError = (err: unknown) => {
     console.error(err);
     showErrorToast("Camera error. Please allow camera access.");
   };
@@ -133,13 +158,13 @@ const CheckIn = ({
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
-          <PlusIconWrapper onClick={() => setScannerOpen(true)}>
+          <PlusIconWrapper onClick={openScanner}>
             <ScanBarcode size={16} color="#444" />
           </PlusIconWrapper>
         </SearchContainer>
 
         {/* Scanner Overlay */}
-        {scannerOpen && (
+        {scannerOpen && deviceId && (
           <div
             style={{
               position: "fixed",
@@ -156,10 +181,10 @@ const CheckIn = ({
             }}
           >
             <QrReader
-              constraints={{ facingMode: "environment" }}
+              constraints={{ deviceId: { exact: deviceId } }}
               onResult={(result, error) => {
-                if (!!result) handleScan(result.getText());
-                if (!!error) handleError(error);
+                if (result) handleScan(result.getText());
+                if (error) handleError(error);
               }}
               videoStyle={{ width: "90%", maxWidth: 400, borderRadius: 16 }}
             />
@@ -185,7 +210,6 @@ const CheckIn = ({
               </tr>
             </thead>
             <tbody>
-              {/* Use scannedRows for tickets scanned via QR */}
               {scannedRows.map((row, index) => (
                 <tr key={row.code}>
                   <td>{index + 1}</td>
@@ -196,7 +220,6 @@ const CheckIn = ({
                 </tr>
               ))}
 
-              {/* Existing attendees filtered */}
               {filteredRows.map((row, index) => (
                 <tr key={row.ticketId}>
                   <td>{index + 1}</td>
