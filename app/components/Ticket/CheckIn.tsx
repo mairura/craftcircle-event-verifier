@@ -24,15 +24,19 @@ import {
 } from "@/app/styles/TicketStyles/Stats.styles";
 import { showErrorToast, showSuccessToast } from "@/app/utils/toast";
 import { Clock, Wallet, ScanBarcode, TicketCheck } from "lucide-react";
-import React, { useState, useRef } from "react";
-import { Scanner, IDetectedBarcode } from "@yudiel/react-qr-scanner";
+import React, { useState } from "react";
+import { Scanner } from "@yudiel/react-qr-scanner";
 
 type Row = {
   id: number;
   name: string;
   email: string;
   phone: string;
-  code: string;
+  transactionId: string;
+  price: number;
+  createdAt: string;
+  eventId: string;
+  scanned: boolean;
 };
 
 interface CheckInProps {
@@ -45,31 +49,26 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const [scannedRows, setScannedRows] = useState<Row[]>([]);
   const [scannerOpen, setScannerOpen] = useState(false);
 
-  const lastScannedCode = useRef<string | null>(null); // Prevent multiple scans
-
   const { scanTicket: scanTicketFromQr } = useScanTicketFromQr();
   const { scanTicket: scanTicketById } = useScanTicket();
 
   /** Handle QR scan */
-  const handleScanQr = async (scannedText: string | null) => {
-    if (!scannedText) return;
-
-    // Prevent duplicate scans of the same QR code
-    if (lastScannedCode.current === scannedText) return;
-    lastScannedCode.current = scannedText;
-
-    console.log("QR payload detected:", scannedText);
+  const handleScanQr = async (payload: string | null) => {
+    if (!payload) return;
 
     try {
-      const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(
-        scannedText
-      );
-      if (!ticket) return;
+      console.log("Payload detected:", payload);
+      showSuccessToast(`QR payload detected: ${payload}`);
 
-      showSuccessToast(
-        ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌"
-      );
+      const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(payload);
+      if (!ticket) {
+        showErrorToast("Failed to fetch ticket details");
+        return;
+      }
 
+      showSuccessToast(ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌");
+
+      // Add to table
       setScannedRows((prev) => [
         ...prev,
         {
@@ -77,17 +76,19 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
           name: `Ticket #${ticket.id}`,
           email: "",
           phone: "",
-          code: ticket.transactionId,
+          transactionId: ticket.transactionId,
+          price: ticket.price,
+          createdAt: ticket.createdAt,
+          eventId: ticket.eventId,
+          scanned: ticket.scanned,
         },
       ]);
 
       setTicketId(ticket.transactionId);
-      setScannerOpen(false); // Close camera after successful scan
-      lastScannedCode.current = null; // Reset for next scan
+      setScannerOpen(false); // automatically close camera
     } catch (err) {
       console.error(err);
       showErrorToast("QR scanning failed.");
-      lastScannedCode.current = null;
     }
   };
 
@@ -100,14 +101,10 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const handleScanByTicketId = async () => {
     if (!ticketId) return;
     try {
-      const ticket: ScannedTicketWithUser | null = await scanTicketById(
-        ticketId
-      );
+      const ticket: ScannedTicketWithUser | null = await scanTicketById(ticketId);
       if (!ticket) return showErrorToast("Ticket not found.");
 
-      showSuccessToast(
-        ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌"
-      );
+      showSuccessToast(ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌");
 
       setScannedRows((prev) => [
         ...prev,
@@ -116,7 +113,11 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
           name: ticket.user?.name || `Ticket #${ticket.id}`,
           email: ticket.user?.name || "",
           phone: "",
-          code: ticket.transactionId,
+          transactionId: ticket.transactionId,
+          price: ticket.price,
+          createdAt: ticket.createdAt,
+          eventId: ticket.eventId,
+          scanned: ticket.scanned,
         },
       ]);
 
@@ -128,7 +129,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   };
 
   const filteredByTicketId = ticketId
-    ? scannedRows.filter((r) => r.code.includes(ticketId))
+    ? scannedRows.filter((r) => r.transactionId.includes(ticketId))
     : scannedRows;
 
   const noRecordsFound = filteredByTicketId.length === 0;
@@ -209,16 +210,12 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
               }}
             >
               <Scanner
-                onScan={(detectedCodes: IDetectedBarcode[]) => {
+                onScan={(detectedCodes) => {
                   if (detectedCodes.length === 0) return;
-
                   const payload = detectedCodes[0].rawValue;
-                  console.log("Detected codes from Scanner:", detectedCodes);
-
-                  // Show toast immediately when payload is read
-                  showSuccessToast(`QR payload detected: ${payload}`);
-
-                  handleScanQr(payload); // Continue with backend validation
+                  console.log("Payload detected from scanner:", payload);
+                  showSuccessToast(`Payload detected: ${payload}`); // instant toast
+                  handleScanQr(payload); // send to backend and add to table
                 }}
                 onError={handleError}
                 constraints={{ facingMode: { exact: "environment" } }}
@@ -248,28 +245,29 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Ticket Code</th>
+                <th>Ticket ID</th>
                 <th>Attendee</th>
-                <th>Email</th>
-                <th>Phone</th>
+                <th>Price</th>
+                <th>Scanned</th>
+                <th>Created At</th>
+                <th>Event ID</th>
               </tr>
             </thead>
             <tbody>
               {filteredByTicketId.map((row, index) => (
-                <tr key={row.code}>
+                <tr key={row.transactionId}>
                   <td>{index + 1}</td>
-                  <td>{row.code}</td>
+                  <td>{row.transactionId}</td>
                   <td>{row.name}</td>
-                  <td>{row.email}</td>
-                  <td>{row.phone}</td>
+                  <td>{row.price}</td>
+                  <td>{row.scanned ? "✅" : "❌"}</td>
+                  <td>{new Date(row.createdAt).toLocaleString()}</td>
+                  <td>{row.eventId}</td>
                 </tr>
               ))}
               {noRecordsFound && (
                 <tr>
-                  <td
-                    colSpan={5}
-                    style={{ textAlign: "center", padding: "1rem" }}
-                  >
+                  <td colSpan={7} style={{ textAlign: "center", padding: "1rem" }}>
                     No record found
                   </td>
                 </tr>
