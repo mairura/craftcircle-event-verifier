@@ -29,7 +29,9 @@ export const useScanTicketFromQr = () => {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ScannedTicket | null>(null);
 
-  const scanTicket = async (encryptedPayload: string): Promise<ScannedTicket | null> => {
+  const scanTicket = async (
+    encryptedPayload: string
+  ): Promise<ScannedTicket | null> => {
     setLoading(true);
     setError(null);
 
@@ -50,6 +52,11 @@ export const useScanTicketFromQr = () => {
       }
 
       const ticket: ScannedTicket = json.data.ScanTicketFromQr;
+
+      if (!ticket) {
+        return null;
+      }
+
       setData(ticket);
       return ticket;
     } catch (err) {

@@ -224,9 +224,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
                 onScan={(detectedCodes) => {
                   if (detectedCodes.length === 0) return;
                   const payload = detectedCodes[0].rawValue;
-                  console.log("Payload detected from scanner:", payload);
-                  showSuccessToast(`Payload detected: ${payload}`); // instant toast
-                  handleScanQr(payload); // send to backend and add to table
+                  handleScanQr(payload); 
                 }}
                 onError={handleError}
                 constraints={{ facingMode: { exact: "environment" } }}
