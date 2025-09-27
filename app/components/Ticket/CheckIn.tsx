@@ -1,7 +1,13 @@
 "use client";
 
-import { Attendee } from "@/app/hooks/useAttendeeForEvent";
-import { useScanTicketFromQr } from "@/app/hooks/useScanTicketFromQr";
+import {
+  useScanTicketFromQr,
+  ScannedTicket as ScannedTicketFromQr,
+} from "@/app/hooks/useScanTicketFromQr";
+import {
+  useScanTicket,
+  ScannedTicketWithUser,
+} from "@/app/hooks/useScanTicket";
 import { TicketTypesWithSummaryForEvent } from "@/app/hooks/useTicketTypesSummaryForEvent";
 import {
   CardText,
@@ -12,13 +18,12 @@ import {
   IconWrapper,
   PlusIconWrapper,
   SearchContainer,
-  SearchIconWrapper,
   SearchInput,
   StyledTable,
   TableWrapper,
 } from "@/app/styles/TicketStyles/Stats.styles";
 import { showErrorToast, showSuccessToast } from "@/app/utils/toast";
-import { Clock, Wallet, Search, ScanBarcode, TicketCheck } from "lucide-react";
+import { Clock, Wallet, ScanBarcode, TicketCheck } from "lucide-react";
 import React, { useState } from "react";
 import { QrReader } from "react-qr-reader";
 
@@ -30,86 +35,109 @@ type Row = {
   code: string;
 };
 
-const CheckIn = ({
-  summary,
-  attendees = [],
-}: {
+interface CheckInProps {
   summary?: TicketTypesWithSummaryForEvent;
-  attendees?: Attendee[];
-}) => {
+  ticketId: string;
+  setTicketId: (id: string) => void;
+}
+
+const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const [scannedRows, setScannedRows] = useState<Row[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [deviceId, setDeviceId] = useState<string | undefined>();
-  const { scanTicket } = useScanTicketFromQr();
 
-  // Get back camera device ID
+  const { scanTicket: scanTicketFromQr } = useScanTicketFromQr();
+  const { scanTicket: scanTicketById } = useScanTicket();
+
+  /** Get back camera device ID */
   const getBackCameraDeviceId = async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter(d => d.kind === "videoinput");
-      console.log("Video devices:", videoDevices);
-      const backCamera = videoDevices.find(d =>
+      const videoDevices = devices.filter((d) => d.kind === "videoinput");
+      const backCamera = videoDevices.find((d) =>
         d.label.toLowerCase().includes("back")
       );
       return backCamera?.deviceId || videoDevices[0]?.deviceId;
     } catch (err) {
-      console.error("Error enumerating devices", err);
+      console.error(err);
       return undefined;
     }
   };
 
+  /** Open QR scanner */
   const openScanner = async () => {
     const id = await getBackCameraDeviceId();
-    if (!id) {
-      showErrorToast("No camera found on this device.");
-      return;
-    }
+    if (!id) return showErrorToast("No camera found on this device.");
     setDeviceId(id);
     setScannerOpen(true);
   };
 
-  // Handles QR scan result
-  const handleScan = async (scannedText: string | null) => {
+  /** Handle QR scan */
+  const handleScanQr = async (scannedText: string | null) => {
     if (!scannedText) return;
-
     try {
-      const ticket = await scanTicket(scannedText);
+      const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(scannedText);
+      if (!ticket) return;
 
-      if (ticket) {
-        if (ticket.scanned) {
-          showSuccessToast("Ticket scanned successfully ✅");
-        } else {
-          showErrorToast("Ticket invalid or already used ❌");
-        }
+      showSuccessToast(ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌");
 
-        setScannedRows(prev => [
-          ...prev,
-          {
-            id: prev.length + 1,
-            name: `Ticket #${ticket.id}`,
-            email: "",
-            phone: "",
-            code: ticket.transactionId,
-          },
-        ]);
-      }
+      setScannedRows((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          name: `Ticket #${ticket.id}`,
+          email: "",
+          phone: "",
+          code: ticket.transactionId,
+        },
+      ]);
 
+      setTicketId(ticket.transactionId); // update ticketId in parent
       setScannerOpen(false);
     } catch (err) {
       console.error(err);
-      showErrorToast("Scanning failed. Try again.");
+      showErrorToast("QR scanning failed.");
     }
   };
 
+  /** Handle manual ticket ID scan */
+  const handleScanByTicketId = async () => {
+    if (!ticketId) return;
+    try {
+      const ticket: ScannedTicketWithUser | null = await scanTicketById(ticketId);
+      if (!ticket) return showErrorToast("Ticket not found.");
+
+      showSuccessToast(ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌");
+
+      setScannedRows((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          name: ticket.user?.name || `Ticket #${ticket.id}`,
+          email: ticket.user?.name || "",
+          phone: "",
+          code: ticket.transactionId,
+        },
+      ]);
+
+      setTicketId(""); // reset after scanning
+    } catch (err) {
+      console.error(err);
+      showErrorToast("Ticket scan failed.");
+    }
+  };
+
+  /** Handle camera error */
   const handleError = (err: unknown) => {
     console.error(err);
     showErrorToast("Camera error. Please allow camera access.");
   };
 
-  const filteredRows = attendees.filter(row =>
-    row.recipient.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredByTicketId = ticketId
+    ? scannedRows.filter((r) => r.code.includes(ticketId))
+    : scannedRows;
+
+  const noRecordsFound = filteredByTicketId.length === 0;
 
   return (
     <CheckInContainer>
@@ -117,29 +145,21 @@ const CheckIn = ({
         {/* Cards */}
         <CheckInCards>
           <CheckInCard>
-            <IconWrapper>
-              <Clock />
-            </IconWrapper>
+            <IconWrapper><Clock /></IconWrapper>
             <CardText>
               <p>Tickets Checked In</p>
               <h3>{summary?.totalCheckedIn ?? 0}</h3>
             </CardText>
           </CheckInCard>
-
           <CheckInCard>
-            <IconWrapper>
-              <Wallet />
-            </IconWrapper>
+            <IconWrapper><Wallet /></IconWrapper>
             <CardText>
               <p>Total Sold</p>
               <h3>{summary?.totalSold ?? 0}</h3>
             </CardText>
           </CheckInCard>
-
           <CheckInCard>
-            <IconWrapper>
-              <TicketCheck />
-            </IconWrapper>
+            <IconWrapper><TicketCheck /></IconWrapper>
             <CardText>
               <p>Total Tickets</p>
               <h3>{summary?.totalTickets ?? 0}</h3>
@@ -147,23 +167,23 @@ const CheckIn = ({
           </CheckInCard>
         </CheckInCards>
 
-        {/* Search with Plus */}
+        {/* Manual ticket ID input / QR button */}
         <SearchContainer>
-          <SearchIconWrapper>
-            <Search />
-          </SearchIconWrapper>
           <SearchInput
-            type="search"
-            placeholder="Search attendees..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            type="text"
+            placeholder="Enter Ticket ID"
+            value={ticketId}
+            onChange={(e) => setTicketId(e.target.value)}
           />
+          <PlusIconWrapper onClick={handleScanByTicketId}>
+            <TicketCheck size={16} color="#444" />
+          </PlusIconWrapper>
           <PlusIconWrapper onClick={openScanner}>
             <ScanBarcode size={16} color="#444" />
           </PlusIconWrapper>
         </SearchContainer>
 
-        {/* Scanner Overlay */}
+        {/* QR Scanner */}
         {scannerOpen && deviceId && (
           <div
             style={{
@@ -183,7 +203,7 @@ const CheckIn = ({
             <QrReader
               constraints={{ deviceId: { exact: deviceId } }}
               onResult={(result, error) => {
-                if (result) handleScan(result.getText());
+                if (result) handleScanQr(result.getText());
                 if (error) handleError(error);
               }}
               videoStyle={{ width: "90%", maxWidth: 400, borderRadius: 16 }}
@@ -210,7 +230,7 @@ const CheckIn = ({
               </tr>
             </thead>
             <tbody>
-              {scannedRows.map((row, index) => (
+              {filteredByTicketId.map((row, index) => (
                 <tr key={row.code}>
                   <td>{index + 1}</td>
                   <td>{row.code}</td>
@@ -219,21 +239,10 @@ const CheckIn = ({
                   <td>{row.phone}</td>
                 </tr>
               ))}
-
-              {filteredRows.map((row, index) => (
-                <tr key={row.ticketId}>
-                  <td>{index + 1}</td>
-                  <td>{row.ticketId}</td>
-                  <td>{row.recipient.name}</td>
-                  <td>{row.ticketType}</td>
-                  <td>{row.scanned ? "✅" : "❌"}</td>
-                </tr>
-              ))}
-
-              {filteredRows.length === 0 && scannedRows.length === 0 && (
+              {noRecordsFound && (
                 <tr>
                   <td colSpan={5} style={{ textAlign: "center", padding: "1rem" }}>
-                    No Attendees found
+                    No record found
                   </td>
                 </tr>
               )}

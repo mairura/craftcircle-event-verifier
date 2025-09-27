@@ -1,9 +1,8 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import CheckIn from "./CheckIn";
 import { TicketTypesWithSummaryForEvent } from "@/app/hooks/useTicketTypesSummaryForEvent";
-import { Attendee } from "@/app/hooks/useAttendeeForEvent";
 
 const StatsContainer = styled.div`
   display: flex;
@@ -40,11 +39,8 @@ const StatsTag = styled.div`
   align-items: center;
   font-weight: 600;
   white-space: nowrap;
-  // color: #aecdcb;
-
   font-size: 1.5rem;
 `;
-
 
 const TabContentRow = styled.div`
   display: flex;
@@ -59,13 +55,9 @@ const TabColumn = styled.div`
   flex-direction: column;
 `;
 
-const StatsComponent = ({
-  summary,
-  attendees,
-}: {
-  summary?: TicketTypesWithSummaryForEvent;
-  attendees?: Attendee[];
-}) => {
+const StatsComponent = ({ summary }: { summary?: TicketTypesWithSummaryForEvent }) => {
+  const [ticketId, setTicketId] = useState("");
+
   return (
     <StatsContainer>
       <StatsTags>
@@ -74,7 +66,11 @@ const StatsComponent = ({
 
       <TabContentRow>
         <TabColumn style={{ flex: "1 1 100%" }}>
-          <CheckIn summary={summary} attendees={attendees} />
+          <CheckIn
+            summary={summary}
+            ticketId={ticketId}
+            setTicketId={setTicketId}
+          />
         </TabColumn>
       </TabContentRow>
     </StatsContainer>
