@@ -44,7 +44,25 @@ const CheckIn = ({
   const { scanTicket } = useScanTicketFromQr();
   const codeReader = React.useRef(new BrowserMultiFormatReader());
 
+  // Check if camera is available and allowed
+  const checkCameraAccess = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach(track => track.stop()); // stop immediately
+      return true;
+    } catch (err) {
+      console.error("Camera access denied or unavailable", err);
+      showErrorToast(
+        "Camera access denied. Please allow camera permissions in your browser."
+      );
+      return false;
+    }
+  };
+
   const startScanner = async () => {
+    const hasAccess = await checkCameraAccess();
+    if (!hasAccess) return;
+
     if (!videoRef.current) return;
     setScannerOpen(true);
 
@@ -52,13 +70,12 @@ const CheckIn = ({
       const devices = await codeReader.current.listVideoInputDevices();
       if (devices.length === 0) {
         showErrorToast("No camera found on this device.");
+        setScannerOpen(false);
         return;
       }
 
       // Prefer back camera if available
-      const backCamera = devices.find((d) =>
-        d.label.toLowerCase().includes("back")
-      );
+      const backCamera = devices.find(d => d.label.toLowerCase().includes("back"));
       const deviceId = backCamera?.deviceId || devices[0].deviceId;
 
       const result = await codeReader.current.decodeOnceFromVideoDevice(
@@ -75,14 +92,25 @@ const CheckIn = ({
         } else {
           showErrorToast("Ticket invalid or already used ❌");
         }
+
+        // Optional: add to scanned rows
+        setRows(prev => [
+          ...prev,
+          {
+            id: prev.length + 1,
+            name: `Ticket #${ticket.id}`,
+            email: "",
+            phone: "",
+            code: ticket.transactionId,
+          },
+        ]);
       }
 
-      setScannerOpen(false);
-      codeReader.current.reset();
+      stopScanner();
     } catch (err) {
       console.error(err);
       showErrorToast("Scanning failed. Try again.");
-      setScannerOpen(false);
+      stopScanner();
     }
   };
 
@@ -91,7 +119,7 @@ const CheckIn = ({
     setScannerOpen(false);
   };
 
-  const filteredRows = attendees.filter((row) =>
+  const filteredRows = attendees.filter(row =>
     row.recipient.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -140,13 +168,14 @@ const CheckIn = ({
             type="search"
             placeholder="Search attendees..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
           />
           <PlusIconWrapper onClick={startScanner}>
             <ScanBarcode size={16} color="#444" />
           </PlusIconWrapper>
         </SearchContainer>
 
+        {/* Scanner Overlay */}
         {scannerOpen && (
           <div
             style={{
@@ -201,10 +230,7 @@ const CheckIn = ({
               ))}
               {filteredRows.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={5}
-                    style={{ textAlign: "center", padding: "1rem" }}
-                  >
+                  <td colSpan={5} style={{ textAlign: "center", padding: "1rem" }}>
                     No Attendees found
                   </td>
                 </tr>
