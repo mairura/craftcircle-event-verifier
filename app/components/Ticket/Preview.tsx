@@ -21,7 +21,6 @@ import {
   StatsContainer,
 } from "@/app/styles/TicketStyles/Preview.styles";
 import { useTicketTypesWithSummaryForEvent } from "@/app/hooks/useTicketTypesSummaryForEvent";
-import { useAttendeesForEvent } from "@/app/hooks/useAttendeeForEvent";
 
 const PreviewAction = () => {
   const access =
@@ -31,12 +30,6 @@ const PreviewAction = () => {
   const eventId = access ? JSON.parse(access).eventId : "";
 
   const { data, loading, error } = useTicketTypesWithSummaryForEvent(eventId);
-  const {
-    data: attendees,
-    loading: attendeesLoading,
-    error: attendeesError,
-  } = useAttendeesForEvent(eventId);
-
 
   if (loading) return <p>Loading event data...</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
@@ -88,9 +81,7 @@ const PreviewAction = () => {
 
         <AboutPreview>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <MessageIcon>
-              About the Event
-            </MessageIcon>
+            <MessageIcon>About the Event</MessageIcon>
             <AboutDetails>
               <p>{event.description || "No description provided."}</p>
               <br />
@@ -102,7 +93,7 @@ const PreviewAction = () => {
       <Divider />
 
       <StatsContainer>
-        <StatsComponent summary={data} attendees={attendees} />
+        <StatsComponent summary={data} />
       </StatsContainer>
     </PreviewContainer>
   );
