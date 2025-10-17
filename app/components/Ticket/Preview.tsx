@@ -78,7 +78,15 @@ const PreviewAction = () => {
             <PreviewTimeZone>
               <div>
                 <Calendar size={20} color="#444444" />
-                <p>{event.to}</p>
+                <p>
+                  {event.to
+                    ? new Date(event.to).toLocaleDateString([], {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "-"}
+                </p>
               </div>
               <div>
                 <LocationEdit size={20} color="#444444" />
@@ -86,7 +94,17 @@ const PreviewAction = () => {
               </div>
               <div>
                 <Timer size={20} color="#444444" />
-                {event.startTime} - {event.endTime}
+                <p>
+                  {new Date(event.startTime).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  -{" "}
+                  {new Date(event.endTime).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
               </div>
             </PreviewTimeZone>
           </PreviewData>
