@@ -75,7 +75,7 @@ const AuthForm = () => {
       );
 
       if (success) {
-        showSuccessToast(message || "Access granted!");
+        showSuccessToast("Access granted!");
 
         sessionStorage.setItem(
           "verifiedEventAccess",
