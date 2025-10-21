@@ -61,7 +61,7 @@ const StatsComponent = ({ summary }: { summary?: TicketTypesWithSummaryForEvent 
   return (
     <StatsContainer>
       <StatsTags>
-        <StatsTag>Your tickets checkin</StatsTag>
+        <StatsTag>Your tickets checking</StatsTag>
       </StatsTags>
 
       <TabContentRow>
