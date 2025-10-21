@@ -79,6 +79,14 @@ const PreviewAction = () => {
               <div>
                 <Calendar size={20} color="#444444" />
                 <p>
+                  {event.from
+                    ? new Date(event.from).toLocaleDateString([], {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "-"}
+                  &nbsp;-&nbsp;
                   {event.to
                     ? new Date(event.to).toLocaleDateString([], {
                         year: "numeric",
