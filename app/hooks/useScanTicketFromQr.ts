@@ -2,24 +2,31 @@
 
 import { useState } from "react";
 
-export type ScannedTicket = {
+export type ScannedTicketFromQr = {
   createdAt: string;
-  eventId: string;
-  id: string;
+  code: string;
   price: number;
   scanned: boolean;
   transactionId: string;
+  userName?: string | null;
+  ticketName?: string;
 };
 
 const MUTATION = `
   mutation ScanTicketFromQr($encryptedPayload: String!) {
     ScanTicketFromQr(encryptedPayload: $encryptedPayload) {
+      TicketType {
+        name
+      }
+      code
       createdAt
       eventId
-      id
       price
       scanned
       transactionId
+      user {
+        name
+      }
     }
   }
 `;
@@ -27,11 +34,11 @@ const MUTATION = `
 export const useScanTicketFromQr = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<ScannedTicket | null>(null);
+  const [data, setData] = useState<ScannedTicketFromQr | null>(null);
 
   const scanTicket = async (
     encryptedPayload: string
-  ): Promise<ScannedTicket | null> => {
+  ): Promise<ScannedTicketFromQr | null> => {
     setLoading(true);
     setError(null);
 
@@ -51,11 +58,21 @@ export const useScanTicketFromQr = () => {
         throw new Error(json.errors[0].message);
       }
 
-      const ticket: ScannedTicket = json.data.ScanTicketFromQr;
+      const rawTicket = json.data.ScanTicketFromQr;
 
-      if (!ticket) {
+      if (!rawTicket) {
         return null;
       }
+
+      const ticket: ScannedTicketFromQr = {
+        createdAt: rawTicket.createdAt,
+        code: rawTicket.code,
+        transactionId: rawTicket.transactionId,
+        price: rawTicket.price,
+        scanned: rawTicket.scanned,
+        ticketName: rawTicket.TicketType?.name || "Unknown Ticket",
+        userName: rawTicket.user?.name || null,
+      };
 
       setData(ticket);
       return ticket;

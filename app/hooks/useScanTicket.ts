@@ -5,11 +5,14 @@ import { useState } from "react";
 export type ScannedTicketWithUser = {
   createdAt: string;
   eventId: string;
-  id: string;
+  transactionId: string;
+  ticketTypeId: string;
   price: number;
   scanned: boolean;
-  transactionId: string;
   user: {
+    name: string;
+  } | null;
+  TicketType: {
     name: string;
   } | null;
 };
@@ -17,15 +20,18 @@ export type ScannedTicketWithUser = {
 const MUTATION = `
   mutation ScanTicket($ticketId: String!) {
     ScanTicket(ticketId: $ticketId) {
-      createdAt
-      eventId
-      id
-      price
-      scanned
-      transactionId
+      TicketType {
+        name
+      }
       user {
         name
       }
+      scanned
+      price
+      eventId
+      createdAt
+      transactionId
+      ticketTypeId
     }
   }
 `;

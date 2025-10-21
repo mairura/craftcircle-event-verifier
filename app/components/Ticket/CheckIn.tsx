@@ -2,7 +2,7 @@
 
 import {
   useScanTicketFromQr,
-  ScannedTicket as ScannedTicketFromQr,
+  ScannedTicketFromQr,
 } from "@/app/hooks/useScanTicketFromQr";
 import {
   useScanTicket,
@@ -35,7 +35,6 @@ type Row = {
   transactionId: string;
   price: number;
   createdAt: string;
-  eventId: string;
   scanned: boolean;
 };
 
@@ -56,9 +55,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
     if (!payload) return;
 
     try {
-      const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(
-        payload
-      );
+      const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(payload);
 
       if (!ticket) {
         showErrorToast("Invalid QR code.");
@@ -68,20 +65,19 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       if (ticket.scanned) {
         showErrorToast("Ticket has already been scanned.");
       } else {
-        showSuccessToast("Valid ticket ✅");
+        showSuccessToast("Ticket scanned successfully ✅");
       }
 
       setScannedRows((prev) => [
         ...prev,
         {
           id: prev.length + 1,
-          name: `Ticket #${ticket.id}`,
-          email: "",
+          name: ticket.userName || ticket.ticketName || `Ticket #${ticket.code}`,
+          email: ticket.userName || "",
           phone: "",
           transactionId: ticket.transactionId,
           price: ticket.price,
           createdAt: ticket.createdAt,
-          eventId: ticket.eventId,
           scanned: ticket.scanned,
         },
       ]);
@@ -90,12 +86,8 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       setScannerOpen(false);
     } catch (err: unknown) {
       console.error(err);
-
-      let msg = "QR scanning failed. Please try again.";
-      if (err instanceof Error) {
-        msg = err.message;
-      }
-
+      const msg =
+        err instanceof Error ? err.message : "QR scanning failed. Please try again.";
       showErrorToast(msg);
     }
   };
@@ -107,27 +99,28 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
 
   const handleScanByTicketId = async () => {
     if (!ticketId) return;
+
     try {
-      const ticket: ScannedTicketWithUser | null = await scanTicketById(
-        ticketId
-      );
+      const ticket: ScannedTicketWithUser | null = await scanTicketById(ticketId);
+
       if (!ticket) return showErrorToast("Ticket not found.");
 
-      showSuccessToast(
-        ticket.scanned ? "Ticket scanned ✅" : "Ticket invalid ❌"
-      );
+      if (ticket.scanned) {
+        showErrorToast("Ticket has already been scanned.");
+      } else {
+        showSuccessToast("Ticket scanned successfully ✅");
+      }
 
       setScannedRows((prev) => [
         ...prev,
         {
           id: prev.length + 1,
-          name: ticket.user?.name || `Ticket #${ticket.id}`,
+          name: ticket.user?.name || `Ticket #${ticket.transactionId}`,
           email: ticket.user?.name || "",
           phone: "",
           transactionId: ticket.transactionId,
           price: ticket.price,
           createdAt: ticket.createdAt,
-          eventId: ticket.eventId,
           scanned: ticket.scanned,
         },
       ]);
@@ -195,7 +188,6 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
           </PlusIconWrapper>
         </SearchContainer>
 
-        {/* QR Scanner */}
         {scannerOpen && (
           <div
             style={{
@@ -224,7 +216,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
                 onScan={(detectedCodes) => {
                   if (detectedCodes.length === 0) return;
                   const payload = detectedCodes[0].rawValue;
-                  handleScanQr(payload); 
+                  handleScanQr(payload);
                 }}
                 onError={handleError}
                 constraints={{ facingMode: { exact: "environment" } }}
@@ -259,7 +251,6 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
                 <th>Price</th>
                 <th>Scanned</th>
                 <th>Created At</th>
-                <th>Event ID</th>
               </tr>
             </thead>
             <tbody>
@@ -300,25 +291,11 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
                   >
                     {new Date(row.createdAt).toLocaleString()}
                   </td>
-                  <td
-                    title={row.eventId}
-                    style={{
-                      maxWidth: 100,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {row.eventId}
-                  </td>
                 </tr>
               ))}
               {noRecordsFound && (
                 <tr>
-                  <td
-                    colSpan={7}
-                    style={{ textAlign: "center", padding: "1rem" }}
-                  >
+                  <td colSpan={6} style={{ textAlign: "center", padding: "1rem" }}>
                     No record found
                   </td>
                 </tr>
