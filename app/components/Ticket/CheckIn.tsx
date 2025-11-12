@@ -90,8 +90,6 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const { scanTicket: scanTicketFromQr } = useScanTicketFromQr();
   const { scanTicket: scanTicketById } = useScanTicket();
 
-  console.log("get from ticket id data", ticketId);
-
   const handleTicketScan = (ticket: Row) => {
     setScannedRows((prev) => [...prev, ticket]);
     setSelectedTicket(ticket);
@@ -100,11 +98,20 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
 
   const handleScanQr = async (payload: string | null) => {
     if (!payload) return;
+
+    const existing = scannedRows.find((r) => r.transactionId === payload);
+    if (existing) {
+      setSelectedTicket(existing);
+      setModalOpen(true);
+      showErrorToast("Ticket has already been scanned.");
+      return setScannerOpen(false);
+    }
+
     try {
       const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(
         payload
       );
-      if (!ticket) return showErrorToast("Invalid QR code.");
+      if (!ticket) return showErrorToast("QR Not Recognized.");
 
       const row: Row = {
         id: scannedRows.length + 1,
@@ -118,10 +125,15 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         ticketTypeName: ticket.ticketName || "Standard",
       };
 
-      if (ticket.scanned) showErrorToast("Ticket has already been scanned.");
-      else showSuccessToast("Ticket scanned successfully ✅");
+      if (ticket.scanned) {
+        setSelectedTicket(row);
+        setModalOpen(true);
+        showErrorToast("Ticket has already been scanned.");
+      } else {
+        showSuccessToast("Ticket scanned successfully ✅");
+        handleTicketScan(row);
+      }
 
-      handleTicketScan(row);
       setTicketId(ticket.transactionId);
       setScannerOpen(false);
     } catch (err) {
@@ -132,6 +144,15 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
 
   const handleScanByTicketId = async () => {
     if (!ticketId) return;
+
+    const existing = scannedRows.find((r) => r.transactionId === ticketId);
+    if (existing) {
+      setSelectedTicket(existing);
+      setModalOpen(true);
+      showErrorToast("Ticket has already been scanned.");
+      return;
+    }
+
     try {
       const ticket: ScannedTicketWithUser | null = await scanTicketById(
         ticketId
@@ -150,10 +171,15 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         ticketTypeName: ticket.TicketType?.name || "Standard",
       };
 
-      if (ticket.scanned) showErrorToast("Ticket has already been scanned.");
-      else showSuccessToast("Ticket scanned successfully ✅");
+      if (ticket.scanned) {
+        setSelectedTicket(row);
+        setModalOpen(true);
+        showErrorToast("Ticket has already been scanned.");
+      } else {
+        showSuccessToast("Ticket scanned successfully ✅");
+        handleTicketScan(row);
+      }
 
-      handleTicketScan(row);
       setTicketId("");
     } catch (err) {
       console.error(err);
@@ -165,12 +191,9 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
     ? scannedRows.filter((r) => r.transactionId.includes(ticketId))
     : scannedRows;
 
-  console.log("ticket id", filteredByTicketId);
-
   return (
     <CheckInContainer>
       <CheckInWrapper>
-        {/* Cards */}
         <CheckInCards>
           <CheckInCard>
             <IconWrapper>
