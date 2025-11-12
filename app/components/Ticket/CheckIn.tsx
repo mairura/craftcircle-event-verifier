@@ -37,6 +37,7 @@ type Row = {
   price: number;
   createdAt: string;
   scanned: boolean;
+  ticketTypeName?: string;
 };
 
 interface CheckInProps {
@@ -89,6 +90,8 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const { scanTicket: scanTicketFromQr } = useScanTicketFromQr();
   const { scanTicket: scanTicketById } = useScanTicket();
 
+  console.log("get from ticket id data", ticketId);
+
   const handleTicketScan = (ticket: Row) => {
     setScannedRows((prev) => [...prev, ticket]);
     setSelectedTicket(ticket);
@@ -112,6 +115,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         price: ticket.price,
         createdAt: ticket.createdAt,
         scanned: ticket.scanned,
+        ticketTypeName: ticket.ticketName || "Standard",
       };
 
       if (ticket.scanned) showErrorToast("Ticket has already been scanned.");
@@ -143,6 +147,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         price: ticket.price,
         createdAt: ticket.createdAt,
         scanned: ticket.scanned,
+        ticketTypeName: ticket.TicketType?.name || "Standard",
       };
 
       if (ticket.scanned) showErrorToast("Ticket has already been scanned.");
@@ -159,6 +164,8 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const filteredByTicketId = ticketId
     ? scannedRows.filter((r) => r.transactionId.includes(ticketId))
     : scannedRows;
+
+  console.log("ticket id", filteredByTicketId);
 
   return (
     <CheckInContainer>
@@ -277,6 +284,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
                 <th>#</th>
                 <th>Ticket ID</th>
                 <th>Attendee</th>
+                <th>Ticket Type</th> {/* <-- added */}
                 <th>Price</th>
                 <th>Scanned</th>
                 <th>Created At</th>
@@ -295,6 +303,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
                   <td>{index + 1}</td>
                   <td>{row.transactionId}</td>
                   <td>{row.name}</td>
+                  <td>{row.ticketTypeName}</td>
                   <td>{row.price}</td>
                   <td>{row.scanned ? "✅" : "❌"}</td>
                   <td>{new Date(row.createdAt).toLocaleString()}</td>
@@ -303,7 +312,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
               {filteredByTicketId.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     style={{ textAlign: "center", padding: "1rem" }}
                   >
                     No record found
