@@ -81,7 +81,7 @@ const PreviewAction = () => {
                 <p>
                   {event.from
                     ? new Date(event.from).toLocaleDateString([], {
-                        year: "numeric",
+                        year: "2-digit", 
                         month: "short",
                         day: "numeric",
                       })
@@ -89,29 +89,35 @@ const PreviewAction = () => {
                   &nbsp;-&nbsp;
                   {event.to
                     ? new Date(event.to).toLocaleDateString([], {
-                        year: "numeric",
+                        year: "2-digit", // shows '25
                         month: "short",
                         day: "numeric",
                       })
                     : "-"}
                 </p>
               </div>
+
               <div>
                 <LocationEdit size={20} color="#444444" />
                 <p>{event.location}</p>
               </div>
+
               <div>
                 <Timer size={20} color="#444444" />
                 <p>
-                  {new Date(event.startTime).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}{" "}
+                  {event.startTime
+                    ? new Date(event.startTime).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "-"}{" "}
                   -{" "}
-                  {new Date(event.endTime).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {event.endTime
+                    ? new Date(event.endTime).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "-"}
                 </p>
               </div>
             </PreviewTimeZone>
