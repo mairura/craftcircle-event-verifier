@@ -46,7 +46,8 @@ interface CheckInProps {
   setTicketId: (id: string) => void;
 }
 
-// Modal styled component
+// ✅ Improved Modal Styles
+
 const TicketModal = styled.div<{ open: boolean }>`
   display: ${(props) => (props.open ? "flex" : "none")};
   position: fixed;
@@ -54,31 +55,86 @@ const TicketModal = styled.div<{ open: boolean }>`
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.4);
   justify-content: center;
   align-items: center;
   z-index: 2000;
+  animation: fadeIn 0.3s ease-in-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      backdrop-filter: blur(0);
+    }
+    to {
+      opacity: 1;
+      backdrop-filter: blur(6px);
+    }
+  }
 `;
 
 const ModalContent = styled.div`
-  background: #fff;
-  padding: 1.5rem;
+  background: #ffffff;
+  padding: 2rem;
   border-radius: 1rem;
-  width: 90%;
-  max-width: 400px;
+  width: 95%;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  align-items: flex-start;
+  gap: 1rem;
+  box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.35s ease-out;
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(30px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  h3 {
+    color: #35938d;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #444;
+  }
 `;
 
 const CloseButton = styled.button`
-  background: #ff4d4f;
+  background: #35938d;
   color: #fff;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.2rem;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   align-self: flex-end;
+  font-weight: 500;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #e53935;
+  }
+`;
+
+const StatusBadge = styled.span<{ scanned: boolean }>`
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  background: ${(props) => (props.scanned ? "#d1fae5" : "#fee2e2")};
+  color: ${(props) => (props.scanned ? "#065f46" : "#991b1b")};
 `;
 
 const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
@@ -99,12 +155,11 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const handleScanQr = async (payload: string | null) => {
     if (!payload) return;
 
-    // Check if ticket already scanned in current session
     const existing = scannedRows.find((r) => r.transactionId === payload);
     if (existing) {
       setSelectedTicket(existing);
       setModalOpen(true);
-      showErrorToast("Ticket has already been scanned."); // only once
+      showErrorToast("Ticket has already been scanned.");
       return setScannerOpen(false);
     }
 
@@ -239,7 +294,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         <SearchContainer>
           <SearchInput
             type="text"
-            placeholder="Enter Ticket ID"
+            placeholder="Ticket ID will show here..."
             value={ticketId}
             onChange={(e) => setTicketId(e.target.value)}
           />
@@ -310,7 +365,6 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
           </div>
         )}
 
-        {/* Table */}
         <TableWrapper>
           <StyledTable>
             <thead>
@@ -318,7 +372,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
                 <th>#</th>
                 <th>Ticket ID</th>
                 <th>Attendee</th>
-                <th>Ticket Type</th> {/* <-- added */}
+                <th>Ticket Type</th>
                 <th>Price</th>
                 <th>Scanned</th>
                 <th>Created At</th>
@@ -357,25 +411,32 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
           </StyledTable>
         </TableWrapper>
 
-        {/* Modal for scanned ticket details */}
         <TicketModal open={modalOpen}>
           <ModalContent>
             <CloseButton onClick={() => setModalOpen(false)}>Close</CloseButton>
+
             {selectedTicket && (
               <>
-                <h3>Ticket Details</h3>
+                <h3>🎟️ Ticket Details</h3>
+
                 <p>
                   <strong>Attendee:</strong> {selectedTicket.name}
+                </p>
+                <p>
+                  <strong>Ticket Type:</strong> {selectedTicket.ticketTypeName}
                 </p>
                 <p>
                   <strong>Ticket ID:</strong> {selectedTicket.transactionId}
                 </p>
                 <p>
-                  <strong>Price:</strong> KES {selectedTicket.price}
+                  <strong>Price:</strong>{" "}
+                  <span>KES {selectedTicket.price}</span>
                 </p>
                 <p>
-                  <strong>Scanned:</strong>{" "}
-                  {selectedTicket.scanned ? "✅" : "❌"}
+                  <strong>Status:</strong>{" "}
+                  <StatusBadge scanned={selectedTicket.scanned}>
+                    {selectedTicket.scanned ? "Scanned ✅" : "Not Scanned ❌"}
+                  </StatusBadge>
                 </p>
                 <p>
                   <strong>Created At:</strong>{" "}
