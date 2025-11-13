@@ -9,29 +9,25 @@ export type ScannedTicketWithUser = {
   ticketTypeId: string;
   price: number;
   scanned: boolean;
-  user: {
-    name: string;
-  } | null;
-  TicketType: {
-    name: string;
-  } | null;
+  user: { name: string } | null;
+  TicketType: { name: string } | null;
 };
 
 const MUTATION = `
   mutation ScanTicket($ticketId: String!) {
     ScanTicket(ticketId: $ticketId) {
-      TicketType {
-        name
+      message
+      status
+      ticket {
+        TicketType { name }
+        user { name }
+        scanned
+        price
+        eventId
+        createdAt
+        transactionId
+        ticketTypeId
       }
-      user {
-        name
-      }
-      scanned
-      price
-      eventId
-      createdAt
-      transactionId
-      ticketTypeId
     }
   }
 `;
@@ -40,10 +36,14 @@ export const useScanTicket = () => {
   const [data, setData] = useState<ScannedTicketWithUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const scanTicket = async (ticketId: string): Promise<ScannedTicketWithUser | null> => {
+  const scanTicket = async (
+    ticketId: string
+  ): Promise<ScannedTicketWithUser | null> => {
     setLoading(true);
     setError(null);
+    setMessage(null);
 
     try {
       const res = await fetch(process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT!, {
@@ -61,8 +61,21 @@ export const useScanTicket = () => {
         throw new Error(json.errors[0].message);
       }
 
-      const ticket: ScannedTicketWithUser = json.data.ScanTicket;
+      const result = json.data?.ScanTicket;
+      if (!result) {
+        throw new Error("Unexpected response format.");
+      }
+
+      // Handle custom message / status
+      if (result.status !== "SUCCESS") {
+        setMessage(result.message || "Unknown ticket status");
+        setError(result.message || "Unknown error");
+        return null;
+      }
+
+      const ticket: ScannedTicketWithUser = result.ticket;
       setData(ticket);
+      setMessage(result.message || null);
       return ticket;
     } catch (err) {
       if (err instanceof Error) {
@@ -76,5 +89,5 @@ export const useScanTicket = () => {
     }
   };
 
-  return { scanTicket, data, loading, error };
+  return { scanTicket, data, loading, error, message };
 };
