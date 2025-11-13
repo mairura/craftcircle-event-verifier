@@ -15,17 +15,17 @@ export type ScannedTicketFromQr = {
 const MUTATION = `
   mutation ScanTicketFromQr($encryptedPayload: String!) {
     ScanTicketFromQr(encryptedPayload: $encryptedPayload) {
-      TicketType {
-        name
-      }
-      code
-      createdAt
-      eventId
-      price
-      scanned
-      transactionId
-      user {
-        name
+      message
+      status
+      ticket {
+        TicketType { name }
+        code
+        createdAt
+        eventId
+        price
+        scanned
+        transactionId
+        user { name }
       }
     }
   }
@@ -34,6 +34,7 @@ const MUTATION = `
 export const useScanTicketFromQr = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [data, setData] = useState<ScannedTicketFromQr | null>(null);
 
   const scanTicket = async (
@@ -41,6 +42,7 @@ export const useScanTicketFromQr = () => {
   ): Promise<ScannedTicketFromQr | null> => {
     setLoading(true);
     setError(null);
+    setMessage(null);
 
     try {
       const res = await fetch(process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT!, {
@@ -58,9 +60,20 @@ export const useScanTicketFromQr = () => {
         throw new Error(json.errors[0].message);
       }
 
-      const rawTicket = json.data.ScanTicketFromQr;
+      const result = json.data?.ScanTicketFromQr;
+      if (!result) {
+        throw new Error("Unexpected response format.");
+      }
 
+      if (result.status !== "SUCCESS") {
+        setMessage(result.message || "Unknown ticket status");
+        setError(result.message || "Unknown error");
+        return null;
+      }
+
+      const rawTicket = result.ticket;
       if (!rawTicket) {
+        setMessage("Ticket not found.");
         return null;
       }
 
@@ -75,6 +88,7 @@ export const useScanTicketFromQr = () => {
       };
 
       setData(ticket);
+      setMessage(result.message || null);
       return ticket;
     } catch (err) {
       if (err instanceof Error) {
@@ -88,5 +102,5 @@ export const useScanTicketFromQr = () => {
     }
   };
 
-  return { scanTicket, data, loading, error };
+  return { scanTicket, data, loading, error, message };
 };

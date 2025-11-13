@@ -24,7 +24,14 @@ import {
   TableWrapper,
 } from "@/app/styles/TicketStyles/Stats.styles";
 import { showErrorToast, showSuccessToast } from "@/app/utils/toast";
-import { Clock, Wallet, ScanBarcode, TicketCheck } from "lucide-react";
+import {
+  Clock,
+  Wallet,
+  ScanBarcode,
+  TicketCheck,
+  Check,
+  X,
+} from "lucide-react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import styled from "styled-components";
 
@@ -98,27 +105,73 @@ const ModalContent = styled.div`
     }
   }
 
-  h3 {
-    color: #35938d;
-    font-size: 1.25rem;
-    margin-bottom: 0.25rem;
-  }
-
   p {
     margin: 0;
-    font-size: 0.95rem;
-    color: #444;
+    font-size: 0.75rem;
+    color: #555;
+
+    strong {
+      display: inline-block;
+      margin-top: 0.15rem;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #222;
+    }
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 1rem;
+  }
+`;
+
+const TicketStatus = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 1rem;
+`;
+
+const TicketData = styled.div`
+  border-radius: 8px;
+  width: 100%;
+  padding: 1rem 10px;
+  background: #f9f9f9;
+`;
+
+const TicketInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 1rem;
+  padding: 1rem 10px;
+  background: #f9f9f9;
+  border-radius: 8px;
+
+  div:last-child {
+    text-align: right;
+  }
+
+  p strong {
+    display: inline-block;
+    margin-top: 0.25rem;
+    font-weight: 500;
   }
 `;
 
 const CloseButton = styled.button`
   background: #35938d;
   color: #fff;
-  padding: 0.5rem 1.2rem;
+  padding: 1rem 1.2rem;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  align-self: flex-end;
+  align-self: center;
+  width: 100%;
   font-weight: 500;
   transition: background 0.2s ease;
 
@@ -128,13 +181,17 @@ const CloseButton = styled.button`
 `;
 
 const StatusBadge = styled.span<{ scanned: boolean }>`
-  display: inline-block;
-  padding: 0.3rem 0.7rem;
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  width: 60px;
+  border-radius: 50%;
   font-weight: 600;
   font-size: 0.85rem;
   background: ${(props) => (props.scanned ? "#d1fae5" : "#fee2e2")};
-  color: ${(props) => (props.scanned ? "#065f46" : "#991b1b")};
+  color: ${(props) => (props.scanned ? "#059669" : "#dc2626")};
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 `;
 
 const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
@@ -143,8 +200,9 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Row | null>(null);
 
-  const { scanTicket: scanTicketFromQr } = useScanTicketFromQr();
-  const { scanTicket: scanTicketById } = useScanTicket();
+  const { scanTicket: scanTicketById, message: idMessage } = useScanTicket();
+  const { scanTicket: scanTicketFromQr, message: qrMessage } =
+    useScanTicketFromQr();
 
   const handleTicketScan = (ticket: Row) => {
     setScannedRows((prev) => [...prev, ticket]);
@@ -169,7 +227,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       );
 
       if (!ticket) {
-        showErrorToast("QR Not Recognized.");
+        showErrorToast(qrMessage || "QR Not Recognized.");
         return;
       }
 
@@ -221,7 +279,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       );
 
       if (!ticket) {
-        showErrorToast("Ticket not found.");
+        showErrorToast(idMessage || "Ticket not found.");
         return;
       }
 
@@ -410,41 +468,59 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
             </tbody>
           </StyledTable>
         </TableWrapper>
-
+        {/* ✅ Proper Modal Structure */}
         <TicketModal open={modalOpen}>
-          <ModalContent>
-            <CloseButton onClick={() => setModalOpen(false)}>Close</CloseButton>
-
-            {selectedTicket && (
-              <>
-                <h3>🎟️ Ticket Details</h3>
-
+          {selectedTicket && (
+            <ModalContent>
+              <TicketStatus>
                 <p>
-                  <strong>Attendee:</strong> {selectedTicket.name}
-                </p>
-                <p>
-                  <strong>Ticket Type:</strong> {selectedTicket.ticketTypeName}
-                </p>
-                <p>
-                  <strong>Ticket ID:</strong> {selectedTicket.transactionId}
-                </p>
-                <p>
-                  <strong>Price:</strong>{" "}
-                  <span>KES {selectedTicket.price}</span>
-                </p>
-                <p>
-                  <strong>Status:</strong>{" "}
                   <StatusBadge scanned={selectedTicket.scanned}>
-                    {selectedTicket.scanned ? "Scanned ✅" : "Not Scanned ❌"}
+                    {selectedTicket.scanned ? (
+                      <Check size={24} />
+                    ) : (
+                      <X size={24} />
+                    )}
                   </StatusBadge>
                 </p>
+
                 <p>
-                  <strong>Created At:</strong>{" "}
-                  {new Date(selectedTicket.createdAt).toLocaleString()}
+                  <strong>
+                    {selectedTicket.scanned
+                      ? `Success! "${selectedTicket.name}" has been checked in!`
+                      : `"${selectedTicket.name}" not yet checked in`}
+                  </strong>
                 </p>
-              </>
-            )}
-          </ModalContent>
+              </TicketStatus>
+
+              <TicketInfo>
+                <div>
+                  <p>
+                    Ticket Type: <br />
+                    <strong>{selectedTicket.ticketTypeName}</strong>
+                  </p>
+                </div>
+                <div>
+                  <p>
+                    Price:
+                    <br />
+                    <strong>KES {selectedTicket.price}</strong>
+                  </p>
+                </div>
+              </TicketInfo>
+
+              <TicketData>
+                <p>
+                  Ticket ID:
+                  <br />
+                  <strong>{selectedTicket.transactionId}</strong>
+                </p>
+              </TicketData>
+
+              <CloseButton onClick={() => setModalOpen(false)}>
+                Okay, great!
+              </CloseButton>
+            </ModalContent>
+          )}
         </TicketModal>
       </CheckInWrapper>
     </CheckInContainer>
