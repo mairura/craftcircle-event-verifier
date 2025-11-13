@@ -219,7 +219,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       setSelectedTicket(existing);
       setModalOpen(true);
       showErrorToast("Ticket has already been scanned.");
-      setScannerOpen(false); // close scanner
+      setScannerOpen(false);
       return;
     }
 
@@ -229,9 +229,9 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       );
 
       if (!ticket) {
-        // Only show "not found" if ticket doesn't exist at all
-        showErrorToast(qrMessage || "QR Not Recognized.");
-        return setScannerOpen(false); // close scanner
+        showErrorToast("Ticket not found.");
+        setScannerOpen(false);
+        return;
       }
 
       const row: Row = {
@@ -248,20 +248,18 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
 
       setSelectedTicket(row);
       setModalOpen(true);
+      setTicketId(ticket.transactionId);
+      setScannerOpen(false);
 
       if (ticket.scanned) {
         showErrorToast("Ticket has already been scanned.");
       } else {
-        // New scan
         setScannedRows((prev) => [...prev, row]);
         showSuccessToast("Ticket scanned successfully ✅");
       }
-
-      setTicketId(ticket.transactionId);
-      setScannerOpen(false); // close scanner after processing
     } catch (err) {
       console.error(err);
-      showErrorToast("QR scanning failed.");
+      showErrorToast("Ticket scan failed.");
       setScannerOpen(false);
     }
   };
@@ -283,7 +281,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       );
 
       if (!ticket) {
-        showErrorToast(idMessage || "Ticket not found.");
+        showErrorToast("Ticket not found.");
         return;
       }
 
@@ -299,16 +297,16 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         ticketTypeName: ticket.TicketType?.name || "Standard",
       };
 
+      setSelectedTicket(row);
+      setModalOpen(true);
+      setTicketId("");
+
       if (ticket.scanned) {
-        setSelectedTicket(row);
-        setModalOpen(true);
         showErrorToast("Ticket has already been scanned.");
       } else {
-        handleTicketScan(row);
+        setScannedRows((prev) => [...prev, row]);
         showSuccessToast("Ticket scanned successfully ✅");
       }
-
-      setTicketId("");
     } catch (err) {
       console.error(err);
       showErrorToast("Ticket scan failed.");
