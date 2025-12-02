@@ -199,6 +199,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Row | null>(null);
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
 
   const { scanTicket: scanTicketById, message: idMessage } = useScanTicket();
   const { scanTicket: scanTicketFromQr, message: qrMessage } =
@@ -216,10 +217,10 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
     // Check if ticket already scanned locally
     const existing = scannedRows.find((r) => r.transactionId === payload);
     if (existing) {
-      setSelectedTicket(existing);
+      setSelectedTicket(null);
+      setModalMessage("This ticket has already been scanned.");
       setModalOpen(true);
-      showErrorToast("Ticket has already been scanned.");
-      setScannerOpen(false);
+
       return;
     }
 
@@ -229,8 +230,9 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       );
 
       if (!ticket) {
-        showErrorToast("Ticket not found.");
-        setScannerOpen(false);
+        setSelectedTicket(null);
+        setModalMessage("Ticket not found.");
+        setModalOpen(true);
         return;
       }
 
@@ -252,15 +254,21 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       setScannerOpen(false);
 
       if (ticket.scanned) {
-        showErrorToast("Ticket has already been scanned.");
+        setModalMessage("This ticket has already been scanned.");
+        setSelectedTicket(row);
+        setModalOpen(true);
+        setScannerOpen(false);
+        return;
       } else {
         setScannedRows((prev) => [...prev, row]);
-        showSuccessToast("Ticket scanned successfully ✅");
+        setSelectedTicket(row);
+        setModalMessage(null);
+        setModalOpen(true);
       }
     } catch (err) {
-      console.error(err);
-      showErrorToast("Ticket scan failed.");
-      setScannerOpen(false);
+      setSelectedTicket(null);
+      setModalMessage("Ticket scan failed. Please try again.");
+      setModalOpen(true);
     }
   };
 
@@ -269,9 +277,10 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
 
     const existing = scannedRows.find((r) => r.transactionId === ticketId);
     if (existing) {
-      setSelectedTicket(existing);
+      setSelectedTicket(null);
+      setModalMessage("This ticket has already been scanned.");
       setModalOpen(true);
-      showErrorToast("Ticket has already been scanned.");
+
       return;
     }
 
@@ -281,7 +290,10 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       );
 
       if (!ticket) {
-        showErrorToast("Ticket not found.");
+        setSelectedTicket(null);
+        setModalMessage("Ticket not found.");
+        setModalOpen(true);
+
         return;
       }
 
@@ -302,14 +314,16 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       setTicketId("");
 
       if (ticket.scanned) {
-        showErrorToast("Ticket has already been scanned.");
+        setModalMessage("This ticket has already been scanned.");
+        setModalOpen(true);
       } else {
         setScannedRows((prev) => [...prev, row]);
         showSuccessToast("Ticket scanned successfully ✅");
       }
     } catch (err) {
-      console.error(err);
-      showErrorToast("Ticket scan failed.");
+      setSelectedTicket(null);
+      setModalMessage("Ticket scan failed. Please try again.");
+      setModalOpen(true);
     }
   };
 
@@ -397,8 +411,9 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
                   handleScanQr(payload);
                 }}
                 onError={(err) => {
-                  console.error(err);
-                  showErrorToast("Camera error. Please allow camera access.");
+                  setSelectedTicket(null);
+                  setModalMessage("Camera error. Please allow camera access.");
+                  setModalOpen(true);
                 }}
                 constraints={{ facingMode: { exact: "environment" } }}
                 styles={{
@@ -472,57 +487,86 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         </TableWrapper>
         {/* ✅ Proper Modal Structure */}
         <TicketModal open={modalOpen}>
-          {selectedTicket && (
-            <ModalContent>
-              <TicketStatus>
-                <p>
-                  <StatusBadge scanned={selectedTicket.scanned}>
-                    {selectedTicket.scanned ? (
-                      <Check size={24} />
-                    ) : (
-                      <X size={24} />
-                    )}
+          <ModalContent>
+            {/* ❗ If modalMessage exists → error modal */}
+            {modalMessage ? (
+              <>
+                <TicketStatus>
+                  <StatusBadge scanned={false}>
+                    <X size={24} />
                   </StatusBadge>
-                </p>
-
-                <p>
-                  <strong>
-                    {selectedTicket.scanned
-                      ? `Success! "${selectedTicket.name}" has been checked in!`
-                      : `"${selectedTicket.name}" not yet checked in`}
-                  </strong>
-                </p>
-              </TicketStatus>
-
-              <TicketInfo>
-                <div>
                   <p>
-                    Ticket Type: <br />
-                    <strong>{selectedTicket.ticketTypeName}</strong>
+                    <strong>{modalMessage}</strong>
                   </p>
-                </div>
-                <div>
-                  <p>
-                    Price:
-                    <br />
-                    <strong>KES {selectedTicket.price}</strong>
-                  </p>
-                </div>
-              </TicketInfo>
+                </TicketStatus>
 
-              <TicketData>
-                <p>
-                  Ticket ID:
-                  <br />
-                  <strong>{selectedTicket.transactionId}</strong>
-                </p>
-              </TicketData>
+                <CloseButton
+                  onClick={() => {
+                    setModalOpen(false);
+                    setModalMessage(null);
+                  }}
+                >
+                  Close
+                </CloseButton>
+              </>
+            ) : (
+              /* ✅ NORMAL TICKET DETAILS MODAL */
+              selectedTicket && (
+                <>
+                  <TicketStatus>
+                    <StatusBadge scanned={selectedTicket.scanned}>
+                      {selectedTicket.scanned ? (
+                        <Check size={24} />
+                      ) : (
+                        <X size={24} />
+                      )}
+                    </StatusBadge>
 
-              <CloseButton onClick={() => setModalOpen(false)}>
-                Okay, great!
-              </CloseButton>
-            </ModalContent>
-          )}
+                    <p>
+                      <strong>
+                        {selectedTicket.scanned
+                          ? `Success! "${selectedTicket.name}" has been checked in!`
+                          : `"${selectedTicket.name}" not yet checked in`}
+                      </strong>
+                    </p>
+                  </TicketStatus>
+
+                  <TicketInfo>
+                    <div>
+                      <p>
+                        Ticket Type: <br />
+                        <strong>{selectedTicket.ticketTypeName}</strong>
+                      </p>
+                    </div>
+                    <div>
+                      <p>
+                        Price:
+                        <br />
+                        <strong>KES {selectedTicket.price}</strong>
+                      </p>
+                    </div>
+                  </TicketInfo>
+
+                  <TicketData>
+                    <p>
+                      Ticket ID:
+                      <br />
+                      <strong>{selectedTicket.transactionId}</strong>
+                    </p>
+                  </TicketData>
+
+                  <CloseButton
+                    onClick={() => {
+                      setModalOpen(false);
+                      setSelectedTicket(null);
+                    }}
+                  >
+                    Okay, great!
+                  </CloseButton>
+                </>
+              )
+            )}
+          </ModalContent>
         </TicketModal>
       </CheckInWrapper>
     </CheckInContainer>
