@@ -68,6 +68,11 @@ const TicketModal = styled.div<{ open: boolean }>`
   align-items: center;
   z-index: 2000;
   animation: fadeIn 0.3s ease-in-out;
+  padding: 1rem;
+
+  @media (max-width: 768px) {
+    padding: 0 1rem;
+  }
 
   @keyframes fadeIn {
     from {
