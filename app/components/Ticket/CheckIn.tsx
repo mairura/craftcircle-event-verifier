@@ -230,9 +230,8 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
     }
 
     try {
-      const ticket: ScannedTicketFromQr | null = await scanTicketFromQr(
-        payload
-      );
+      const ticket: ScannedTicketFromQr | null =
+        await scanTicketFromQr(payload);
 
       if (!ticket) {
         setSelectedTicket(null);
@@ -290,9 +289,8 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
     }
 
     try {
-      const ticket: ScannedTicketWithUser | null = await scanTicketById(
-        ticketId
-      );
+      const ticket: ScannedTicketWithUser | null =
+        await scanTicketById(ticketId);
 
       if (!ticket) {
         setSelectedTicket(null);
@@ -363,7 +361,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
               <TicketCheck />
             </IconWrapper>
             <CardText>
-              <p>Total Tickets</p>
+              <p>Remaining Tickets</p>
               <h3>{summary?.totalTickets ?? 0}</h3>
             </CardText>
           </CheckInCard>
