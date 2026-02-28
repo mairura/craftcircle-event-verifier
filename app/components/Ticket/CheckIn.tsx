@@ -206,15 +206,9 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const [selectedTicket, setSelectedTicket] = useState<Row | null>(null);
   const [modalMessage, setModalMessage] = useState<string | null>(null);
 
-  const { scanTicket: scanTicketById, message: idMessage } = useScanTicket();
-  const { scanTicket: scanTicketFromQr, message: qrMessage } =
-    useScanTicketFromQr();
+  const { scanTicket: scanTicketById } = useScanTicket();
 
-  const handleTicketScan = (ticket: Row) => {
-    setScannedRows((prev) => [...prev, ticket]);
-    setSelectedTicket(ticket);
-    setModalOpen(true);
-  };
+  const { scanTicket: scanTicketFromQr } = useScanTicketFromQr();
 
   const handleScanQr = async (payload: string | null) => {
     if (!payload) return;
@@ -235,7 +229,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
 
       if (!ticket) {
         setSelectedTicket(null);
-        setModalMessage("Ticket not found.");
+        setModalMessage("Ticket not found. Please verify the QR code.");
         setModalOpen(true);
         return;
       }
@@ -259,19 +253,25 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
 
       if (ticket.scanned) {
         setModalMessage("This ticket has already been scanned.");
-        setSelectedTicket(row);
-        setModalOpen(true);
-        setScannerOpen(false);
-        return;
+        // setSelectedTicket(row);
+        // setModalOpen(true);
+        // setScannerOpen(false);
+        // return;
       } else {
+        // setScannedRows((prev) => [...prev, row]);
+        // setSelectedTicket(row);
+        // setModalMessage(null);
+        // setModalOpen(true);
+        // showSuccessToast("Check-in successful! ✅");
+
         setScannedRows((prev) => [...prev, row]);
-        setSelectedTicket(row);
         setModalMessage(null);
-        setModalOpen(true);
+        showSuccessToast("Check-in successful! ✅");
       }
     } catch (err) {
+      console.error("Scan Error:", err);
       setSelectedTicket(null);
-      setModalMessage("Ticket scan failed. Please try again.");
+      setModalMessage("Network error. Please check your connection.");
       setModalOpen(true);
     }
   };
@@ -296,7 +296,6 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         setSelectedTicket(null);
         setModalMessage("Ticket not found.");
         setModalOpen(true);
-
         return;
       }
 
@@ -320,8 +319,12 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         setModalMessage("This ticket has already been scanned.");
         setModalOpen(true);
       } else {
+        // setScannedRows((prev) => [...prev, row]);
+        // showSuccessToast("Ticket scanned successfully ✅");
+
         setScannedRows((prev) => [...prev, row]);
         showSuccessToast("Ticket scanned successfully ✅");
+        setTicketId("");
       }
     } catch (err) {
       setSelectedTicket(null);
