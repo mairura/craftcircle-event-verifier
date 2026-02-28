@@ -38,11 +38,13 @@ export const useScanTicketFromQr = () => {
   const [data, setData] = useState<ScannedTicketFromQr | null>(null);
 
   const scanTicket = async (
-    encryptedPayload: string
+    encryptedPayload: string,
   ): Promise<ScannedTicketFromQr | null> => {
     setLoading(true);
     setError(null);
     setMessage(null);
+
+    console.log("DEBUG: Sending payload to backend:", encryptedPayload);
 
     try {
       const res = await fetch(process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT!, {
@@ -61,6 +63,7 @@ export const useScanTicketFromQr = () => {
       }
 
       const result = json.data?.ScanTicketFromQr;
+
       if (!result) {
         throw new Error("Unexpected response format.");
       }
@@ -71,9 +74,11 @@ export const useScanTicketFromQr = () => {
         return null;
       }
 
+      setMessage(result.message);
       const rawTicket = result.ticket;
+
       if (!rawTicket) {
-        setMessage("Ticket not found.");
+        setError(result.message || "Ticket not found");
         return null;
       }
 
@@ -88,7 +93,6 @@ export const useScanTicketFromQr = () => {
       };
 
       setData(ticket);
-      setMessage(result.message || null);
       return ticket;
     } catch (err) {
       if (err instanceof Error) {
