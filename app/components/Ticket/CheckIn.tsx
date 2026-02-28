@@ -213,13 +213,12 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const handleScanQr = async (payload: string | null) => {
     if (!payload) return;
 
-    // Check if ticket already scanned locally
+    // 1. Check if already scanned in the current session (local list)
     const existing = scannedRows.find((r) => r.transactionId === payload);
     if (existing) {
-      setSelectedTicket(null);
-      setModalMessage("This ticket has already been scanned.");
+      setSelectedTicket(existing);
+      setModalMessage("This ticket has already been scanned in this session.");
       setModalOpen(true);
-
       return;
     }
 
@@ -227,6 +226,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       const ticket: ScannedTicketFromQr | null =
         await scanTicketFromQr(payload);
 
+      // 2. Truly Not Found (No ticket record returned by backend)
       if (!ticket) {
         setSelectedTicket(null);
         setModalMessage("Ticket not found. Please verify the QR code.");
@@ -234,6 +234,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         return;
       }
 
+      // 3. Prepare the data for display (Success or Already Scanned)
       const row: Row = {
         id: scannedRows.length + 1,
         name: ticket.userName || ticket.ticketName || `Ticket #${ticket.code}`,
@@ -246,32 +247,26 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         ticketTypeName: ticket.ticketName || "Standard",
       };
 
+      // Always show the ticket details in the modal
       setSelectedTicket(row);
-      setModalOpen(true);
       setTicketId(ticket.transactionId);
       setScannerOpen(false);
+      setModalOpen(true);
 
+      // 4. Determine state based on the 'scanned' boolean from Backend
       if (ticket.scanned) {
+        // Backend says it was already scanned
         setModalMessage("This ticket has already been scanned.");
-        // setSelectedTicket(row);
-        // setModalOpen(true);
-        // setScannerOpen(false);
-        // return;
       } else {
-        // setScannedRows((prev) => [...prev, row]);
-        // setSelectedTicket(row);
-        // setModalMessage(null);
-        // setModalOpen(true);
-        // showSuccessToast("Check-in successful! ✅");
-
+        // Successful fresh check-in
         setScannedRows((prev) => [...prev, row]);
-        setModalMessage(null);
+        setModalMessage(null); // Clear message so it shows the "Success" UI
         showSuccessToast("Check-in successful! ✅");
       }
     } catch (err) {
       console.error("Scan Error:", err);
       setSelectedTicket(null);
-      setModalMessage("Network error. Please check your connection.");
+      setModalMessage("Network error. Please try again.");
       setModalOpen(true);
     }
   };
