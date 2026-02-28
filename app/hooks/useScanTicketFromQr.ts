@@ -10,6 +10,7 @@ export type ScannedTicketFromQr = {
   transactionId: string;
   userName?: string | null;
   ticketName?: string;
+  status?: string; // Added to help frontend distinguish states
 };
 
 const MUTATION = `
@@ -44,8 +45,6 @@ export const useScanTicketFromQr = () => {
     setError(null);
     setMessage(null);
 
-    console.log("DEBUG: Sending payload to backend:", encryptedPayload);
-
     try {
       const res = await fetch(process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT!, {
         method: "POST",
@@ -68,17 +67,12 @@ export const useScanTicketFromQr = () => {
         throw new Error("Unexpected response format.");
       }
 
-      if (result.status !== "SUCCESS") {
-        setMessage(result.message || "Unknown ticket status");
-        setError(result.message || "Unknown error");
-        return null;
-      }
-
-      setMessage(result.message);
       const rawTicket = result.ticket;
 
+      // ✅ FIX: Only return null if the ticket genuinely doesn't exist in the database.
+      // If result.ticket exists, we map it regardless of result.status (SUCCESS vs ALREADY_SCANNED).
       if (!rawTicket) {
-        setError(result.message || "Ticket not found");
+        setMessage(result.message || "Ticket not found.");
         return null;
       }
 
@@ -87,19 +81,19 @@ export const useScanTicketFromQr = () => {
         code: rawTicket.code,
         transactionId: rawTicket.transactionId,
         price: rawTicket.price,
-        scanned: rawTicket.scanned,
+        scanned: rawTicket.scanned, // This boolean is the source of truth for your UI
         ticketName: rawTicket.TicketType?.name || "Unknown Ticket",
         userName: rawTicket.user?.name || null,
+        status: result.status, // We pass the backend status back for logic
       };
 
       setData(ticket);
+      setMessage(result.message); // This will hold "Ticket has already been scanned"
       return ticket;
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Unknown error occurred");
-      }
+      const errMsg =
+        err instanceof Error ? err.message : "Unknown error occurred";
+      setError(errMsg);
       return null;
     } finally {
       setLoading(false);
