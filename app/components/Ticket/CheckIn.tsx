@@ -199,6 +199,13 @@ const StatusBadge = styled.span<{ scanned: boolean }>`
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 `;
 
+enum ScanTicketStatus {
+  SUCCESS = "SUCCESS",
+  ALREADY_SCANNED = "ALREADY_SCANNED",
+  NOT_FOUND = "NOT_FOUND",
+  ERROR = "ERROR",
+}
+
 const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const [scannedRows, setScannedRows] = useState<Row[]>([]);
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -207,34 +214,23 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const [modalMessage, setModalMessage] = useState<string | null>(null);
 
   const { scanTicket: scanTicketById } = useScanTicket();
-
   const { scanTicket: scanTicketFromQr } = useScanTicketFromQr();
 
   const handleScanQr = async (payload: string | null) => {
     if (!payload) return;
 
-    // 1. Check if already scanned in the current session (local list)
-    const existing = scannedRows.find((r) => r.transactionId === payload);
-    if (existing) {
-      setSelectedTicket(existing);
-      setModalMessage("This ticket has already been scanned in this session.");
-      setModalOpen(true);
-      return;
-    }
-
     try {
-      const ticket: ScannedTicketFromQr | null =
-        await scanTicketFromQr(payload);
+      const ticket = await scanTicketFromQr(payload);
 
-      // 2. Truly Not Found (No ticket record returned by backend)
-      if (!ticket) {
+      // Path A: Backend couldn't find the ticket at all
+      if (!ticket || ticket.status === ScanTicketStatus.NOT_FOUND) {
         setSelectedTicket(null);
         setModalMessage("Ticket not found. Please verify the QR code.");
         setModalOpen(true);
         return;
       }
 
-      // 3. Prepare the data for display (Success or Already Scanned)
+      // Prepare row data for the table
       const row: Row = {
         id: scannedRows.length + 1,
         name: ticket.userName || ticket.ticketName || `Ticket #${ticket.code}`,
@@ -244,29 +240,32 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
         price: ticket.price,
         createdAt: ticket.createdAt,
         scanned: ticket.scanned,
-        ticketTypeName: ticket.ticketName || "Standard",
+        ticketTypeName: ticket.ticketName,
       };
 
-      // Always show the ticket details in the modal
       setSelectedTicket(row);
-      setTicketId(ticket.transactionId);
       setScannerOpen(false);
       setModalOpen(true);
 
-      // 4. Determine state based on the 'scanned' boolean from Backend
-      if (ticket.scanned) {
-        // Backend says it was already scanned
+      // Path B: The ticket was ALREADY scanned (Duplicate scan)
+      if (ticket.status === ScanTicketStatus.ALREADY_SCANNED) {
         setModalMessage("This ticket has already been scanned.");
-      } else {
-        // Successful fresh check-in
-        setScannedRows((prev) => [...prev, row]);
-        setModalMessage(null); // Clear message so it shows the "Success" UI
+        // We don't add it to the table again if it's already there
+      }
+
+      // Path C: SUCCESS (First time scanning)
+      else if (ticket.status === ScanTicketStatus.SUCCESS) {
+        setScannedRows((prev) => {
+          const exists = prev.find(
+            (r) => r.transactionId === row.transactionId,
+          );
+          return exists ? prev : [...prev, row];
+        });
+        setModalMessage(null); // Clear message so the "Success" UI shows
         showSuccessToast("Check-in successful! ✅");
       }
     } catch (err) {
-      console.error("Scan Error:", err);
-      setSelectedTicket(null);
-      setModalMessage("Network error. Please try again.");
+      setModalMessage("A network error occurred.");
       setModalOpen(true);
     }
   };
@@ -274,12 +273,12 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const handleScanByTicketId = async () => {
     if (!ticketId) return;
 
+    // Check if it's already in our table list locally
     const existing = scannedRows.find((r) => r.transactionId === ticketId);
     if (existing) {
-      setSelectedTicket(null);
+      setSelectedTicket(existing); // Show the one we already have
       setModalMessage("This ticket has already been scanned.");
       setModalOpen(true);
-
       return;
     }
 
@@ -308,18 +307,16 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
 
       setSelectedTicket(row);
       setModalOpen(true);
-      setTicketId("");
 
-      if (ticket.scanned) {
+      // ✅ Use the backend status to decide the UI flow
+      if (ticket.status === ScanTicketStatus.ALREADY_SCANNED) {
         setModalMessage("This ticket has already been scanned.");
-        setModalOpen(true);
-      } else {
-        // setScannedRows((prev) => [...prev, row]);
-        // showSuccessToast("Ticket scanned successfully ✅");
-
+        // Note: We do NOT add to scannedRows here
+      } else if (ticket.status === ScanTicketStatus.SUCCESS) {
         setScannedRows((prev) => [...prev, row]);
+        setModalMessage(null); // Shows the green success state in modal
         showSuccessToast("Ticket scanned successfully ✅");
-        setTicketId("");
+        setTicketId(""); // Clear input on success
       }
     } catch (err) {
       setSelectedTicket(null);
