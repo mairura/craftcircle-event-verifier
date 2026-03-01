@@ -7,6 +7,7 @@ export type ScannedTicketWithUser = {
   eventId: string;
   transactionId: string;
   ticketTypeId: string;
+  status: string;
   price: number;
   scanned: boolean;
   user: { name: string } | null;
@@ -39,7 +40,7 @@ export const useScanTicket = () => {
   const [message, setMessage] = useState<string | null>(null);
 
   const scanTicket = async (
-    ticketId: string
+    ticketId: string,
   ): Promise<ScannedTicketWithUser | null> => {
     setLoading(true);
     setError(null);
@@ -66,23 +67,23 @@ export const useScanTicket = () => {
         throw new Error("Unexpected response format.");
       }
 
-      // Handle custom message / status
-      if (result.status !== "SUCCESS") {
-        setMessage(result.message || "Unknown ticket status");
-        setError(result.message || "Unknown error");
+      const rawTicket = result.ticket;
+
+      if (!rawTicket) {
+        setMessage(result.message || "Ticket not found.");
         return null;
       }
 
-      const ticket: ScannedTicketWithUser = result.ticket;
+      const ticket: ScannedTicketWithUser = {
+        ...rawTicket,
+        status: result.status,
+      };
+
       setData(ticket);
       setMessage(result.message || null);
       return ticket;
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Unknown error occurred");
-      }
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
       return null;
     } finally {
       setLoading(false);
