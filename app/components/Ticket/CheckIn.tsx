@@ -1,10 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  useScanTicketFromQr,
-  ScannedTicketFromQr,
-} from "@/app/hooks/useScanTicketFromQr";
+import { useScanTicketFromQr } from "@/app/hooks/useScanTicketFromQr";
 import {
   useScanTicket,
   ScannedTicketWithUser,
@@ -23,7 +20,7 @@ import {
   StyledTable,
   TableWrapper,
 } from "@/app/styles/TicketStyles/Stats.styles";
-import { showErrorToast, showSuccessToast } from "@/app/utils/toast";
+import { showSuccessToast } from "@/app/utils/toast";
 import {
   Clock,
   Wallet,
@@ -51,6 +48,7 @@ interface CheckInProps {
   summary?: TicketTypesWithSummaryForEvent;
   ticketId: string;
   setTicketId: (id: string) => void;
+  eventId?: string;
 }
 
 // ✅ Improved Modal Styles
@@ -206,7 +204,7 @@ enum ScanTicketStatus {
   ERROR = "ERROR",
 }
 
-const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
+const CheckIn = ({ summary, ticketId, setTicketId, eventId }: CheckInProps) => {
   const [scannedRows, setScannedRows] = useState<Row[]>([]);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -219,8 +217,14 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
   const handleScanQr = async (payload: string | null) => {
     if (!payload) return;
 
+    if (!eventId) {
+      setModalMessage("Event ID is missing. Please refresh the page.");
+      setModalOpen(true);
+      return;
+    }
+
     try {
-      const ticket = await scanTicketFromQr(payload);
+      const ticket = await scanTicketFromQr(payload, eventId);
 
       // Path A: Backend couldn't find the ticket at all
       if (!ticket || ticket.status === ScanTicketStatus.NOT_FOUND) {
@@ -261,10 +265,10 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
           );
           return exists ? prev : [...prev, row];
         });
-        setModalMessage(null); // Clear message so the "Success" UI shows
+        setModalMessage(null);
         showSuccessToast("Check-in successful! ✅");
       }
-    } catch (err) {
+    } catch {
       setModalMessage("A network error occurred.");
       setModalOpen(true);
     }
@@ -308,17 +312,15 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
       setSelectedTicket(row);
       setModalOpen(true);
 
-      // ✅ Use the backend status to decide the UI flow
       if (ticket.status === ScanTicketStatus.ALREADY_SCANNED) {
         setModalMessage("This ticket has already been scanned.");
-        // Note: We do NOT add to scannedRows here
       } else if (ticket.status === ScanTicketStatus.SUCCESS) {
         setScannedRows((prev) => [...prev, row]);
-        setModalMessage(null); // Shows the green success state in modal
+        setModalMessage(null);
         showSuccessToast("Ticket scanned successfully ✅");
-        setTicketId(""); // Clear input on success
+        setTicketId("");
       }
-    } catch (err) {
+    } catch {
       setSelectedTicket(null);
       setModalMessage("Ticket scan failed. Please try again.");
       setModalOpen(true);
@@ -408,7 +410,7 @@ const CheckIn = ({ summary, ticketId, setTicketId }: CheckInProps) => {
                   const payload = detectedCodes[0].rawValue;
                   handleScanQr(payload);
                 }}
-                onError={(err) => {
+                onError={() => {
                   setSelectedTicket(null);
                   setModalMessage("Camera error. Please allow camera access.");
                   setModalOpen(true);
