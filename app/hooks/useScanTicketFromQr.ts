@@ -10,12 +10,12 @@ export type ScannedTicketFromQr = {
   transactionId: string;
   userName?: string | null;
   ticketName?: string;
-  status?: string; // Added to help frontend distinguish states
+  status?: string;
 };
 
 const MUTATION = `
-  mutation ScanTicketFromQr($encryptedPayload: String!) {
-    ScanTicketFromQr(encryptedPayload: $encryptedPayload) {
+  mutation ScanTicketFromQr($encryptedPayload: String!, $eventId: String!) {
+    ScanTicketFromQr(encryptedPayload: $encryptedPayload, eventId: $eventId) {
       message
       status
       ticket {
@@ -40,6 +40,7 @@ export const useScanTicketFromQr = () => {
 
   const scanTicket = async (
     encryptedPayload: string,
+    eventId: string,
   ): Promise<ScannedTicketFromQr | null> => {
     setLoading(true);
     setError(null);
@@ -51,7 +52,7 @@ export const useScanTicketFromQr = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: MUTATION,
-          variables: { encryptedPayload },
+          variables: { encryptedPayload, eventId },
         }),
       });
 
@@ -69,8 +70,6 @@ export const useScanTicketFromQr = () => {
 
       const rawTicket = result.ticket;
 
-      // ✅ FIX: Only return null if the ticket genuinely doesn't exist in the database.
-      // If result.ticket exists, we map it regardless of result.status (SUCCESS vs ALREADY_SCANNED).
       if (!rawTicket) {
         setMessage(result.message || "Ticket not found.");
         return null;
@@ -81,14 +80,14 @@ export const useScanTicketFromQr = () => {
         code: rawTicket.code,
         transactionId: rawTicket.transactionId,
         price: rawTicket.price,
-        scanned: rawTicket.scanned, // This boolean is the source of truth for your UI
+        scanned: rawTicket.scanned,
         ticketName: rawTicket.TicketType?.name || "Unknown Ticket",
         userName: rawTicket.user?.name || null,
-        status: result.status, // We pass the backend status back for logic
+        status: result.status,
       };
 
       setData(ticket);
-      setMessage(result.message); // This will hold "Ticket has already been scanned"
+      setMessage(result.message);
       return ticket;
     } catch (err) {
       const errMsg =

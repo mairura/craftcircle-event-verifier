@@ -55,7 +55,11 @@ const TabColumn = styled.div`
   flex-direction: column;
 `;
 
-const StatsComponent = ({ summary }: { summary?: TicketTypesWithSummaryForEvent }) => {
+const StatsComponent = ({
+  summary,
+}: {
+  summary?: TicketTypesWithSummaryForEvent;
+}) => {
   const [ticketId, setTicketId] = useState("");
 
   return (
@@ -70,6 +74,7 @@ const StatsComponent = ({ summary }: { summary?: TicketTypesWithSummaryForEvent 
             summary={summary}
             ticketId={ticketId}
             setTicketId={setTicketId}
+            eventId={summary?.eventId}
           />
         </TabColumn>
       </TabContentRow>
