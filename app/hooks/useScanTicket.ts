@@ -3,31 +3,36 @@
 import { useState } from "react";
 
 export type ScannedTicketWithUser = {
-  createdAt: string;
-  eventId: string;
-  transactionId: string;
-  ticketTypeId: string;
-  status: string;
-  price: number;
+  id: string;
+  code: string;
   scanned: boolean;
-  user: { name: string } | null;
-  TicketType: { name: string } | null;
+  scannedAt?: string | null;
+  status: string;
+  issuedBy?: string | null;
+  ticketRecipient?: {
+    email: string;
+    name: string;
+    ticketId: string;
+  } | null;
 };
 
 const MUTATION = `
-  mutation ScanTicket($ticketId: String!) {
-    ScanTicket(ticketId: $ticketId) {
+  mutation ScanTicket($idempotencyKey: String!, $sessionToken: String!, $ticketCode: String!) {
+    ScanTicket(idempotencyKey: $idempotencyKey, sessionToken: $sessionToken, ticketCode: $ticketCode) {
       message
       status
       ticket {
-        TicketType { name }
-        user { name }
         scanned
-        price
-        eventId
-        createdAt
-        transactionId
-        ticketTypeId
+        status
+        ticketRecipient {
+          email
+          name
+          ticketId
+        }
+        issuedBy
+        scannedAt
+        id
+        code
       }
     }
   }
@@ -40,7 +45,9 @@ export const useScanTicket = () => {
   const [message, setMessage] = useState<string | null>(null);
 
   const scanTicket = async (
-    ticketId: string,
+    ticketCode: string,
+    idempotencyKey: string,
+    sessionToken: string,
   ): Promise<ScannedTicketWithUser | null> => {
     setLoading(true);
     setError(null);
@@ -52,20 +59,16 @@ export const useScanTicket = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: MUTATION,
-          variables: { ticketId },
+          variables: { ticketCode, idempotencyKey, sessionToken },
         }),
       });
 
       const json = await res.json();
 
-      if (json.errors) {
-        throw new Error(json.errors[0].message);
-      }
+      if (json.errors) throw new Error(json.errors[0].message);
 
       const result = json.data?.ScanTicket;
-      if (!result) {
-        throw new Error("Unexpected response format.");
-      }
+      if (!result) throw new Error("Unexpected response format.");
 
       const rawTicket = result.ticket;
 
@@ -75,8 +78,13 @@ export const useScanTicket = () => {
       }
 
       const ticket: ScannedTicketWithUser = {
-        ...rawTicket,
+        id: rawTicket.id,
+        code: rawTicket.code,
+        scanned: rawTicket.scanned,
+        scannedAt: rawTicket.scannedAt ?? null,
         status: result.status,
+        issuedBy: rawTicket.issuedBy ?? null,
+        ticketRecipient: rawTicket.ticketRecipient ?? null,
       };
 
       setData(ticket);
