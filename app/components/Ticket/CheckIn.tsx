@@ -217,16 +217,25 @@ const CheckIn = ({ summary, ticketId, setTicketId, eventId }: CheckInProps) => {
   const handleScanQr = async (payload: string | null) => {
     if (!payload) return;
 
-    if (!eventId) {
-      setModalMessage("Event ID is missing. Please refresh the page.");
+    // Read sessionToken from sessionStorage
+    const stored = sessionStorage.getItem("verifiedEventAccess");
+    const sessionToken = stored ? JSON.parse(stored).sessionToken : null;
+
+    if (!sessionToken) {
+      setModalMessage("Session expired. Please log in again.");
       setModalOpen(true);
       return;
     }
 
-    try {
-      const ticket = await scanTicketFromQr(payload, eventId);
+    const idempotencyKey = crypto.randomUUID();
 
-      // Path A: Backend couldn't find the ticket at all
+    try {
+      const ticket = await scanTicketFromQr(
+        payload,
+        idempotencyKey,
+        sessionToken,
+      );
+
       if (!ticket || ticket.status === ScanTicketStatus.NOT_FOUND) {
         setSelectedTicket(null);
         setModalMessage("Ticket not found. Please verify the QR code.");
@@ -234,15 +243,14 @@ const CheckIn = ({ summary, ticketId, setTicketId, eventId }: CheckInProps) => {
         return;
       }
 
-      // Prepare row data for the table
       const row: Row = {
         id: scannedRows.length + 1,
         name: ticket.userName || ticket.ticketName || `Ticket #${ticket.code}`,
         email: ticket.userName || "",
         phone: "",
-        transactionId: ticket.transactionId,
-        price: ticket.price,
-        createdAt: ticket.createdAt,
+        transactionId: ticket.code,
+        price: ticket.price ?? 0,
+        createdAt: ticket.scannedAt || new Date().toISOString(),
         scanned: ticket.scanned,
         ticketTypeName: ticket.ticketName,
       };
@@ -251,14 +259,9 @@ const CheckIn = ({ summary, ticketId, setTicketId, eventId }: CheckInProps) => {
       setScannerOpen(false);
       setModalOpen(true);
 
-      // Path B: The ticket was ALREADY scanned (Duplicate scan)
       if (ticket.status === ScanTicketStatus.ALREADY_SCANNED) {
         setModalMessage("This ticket has already been scanned.");
-        // We don't add it to the table again if it's already there
-      }
-
-      // Path C: SUCCESS (First time scanning)
-      else if (ticket.status === ScanTicketStatus.SUCCESS) {
+      } else if (ticket.status === ScanTicketStatus.SUCCESS) {
         setScannedRows((prev) => {
           const exists = prev.find(
             (r) => r.transactionId === row.transactionId,
@@ -277,18 +280,33 @@ const CheckIn = ({ summary, ticketId, setTicketId, eventId }: CheckInProps) => {
   const handleScanByTicketId = async () => {
     if (!ticketId) return;
 
-    // Check if it's already in our table list locally
+    // Check locally first
     const existing = scannedRows.find((r) => r.transactionId === ticketId);
     if (existing) {
-      setSelectedTicket(existing); // Show the one we already have
+      setSelectedTicket(existing);
       setModalMessage("This ticket has already been scanned.");
       setModalOpen(true);
       return;
     }
 
+    // Read sessionToken from sessionStorage
+    const stored = sessionStorage.getItem("verifiedEventAccess");
+    const sessionToken = stored ? JSON.parse(stored).sessionToken : null;
+
+    if (!sessionToken) {
+      setModalMessage("Session expired. Please log in again.");
+      setModalOpen(true);
+      return;
+    }
+
+    const idempotencyKey = crypto.randomUUID();
+
     try {
-      const ticket: ScannedTicketWithUser | null =
-        await scanTicketById(ticketId);
+      const ticket: ScannedTicketWithUser | null = await scanTicketById(
+        ticketId,
+        idempotencyKey,
+        sessionToken,
+      );
 
       if (!ticket) {
         setSelectedTicket(null);
@@ -299,14 +317,14 @@ const CheckIn = ({ summary, ticketId, setTicketId, eventId }: CheckInProps) => {
 
       const row: Row = {
         id: scannedRows.length + 1,
-        name: ticket.user?.name || `Ticket #${ticket.transactionId}`,
-        email: ticket.user?.name || "",
+        name: ticket.ticketRecipient?.name || `Ticket #${ticket.code}`,
+        email: ticket.ticketRecipient?.email || "",
         phone: "",
-        transactionId: ticket.transactionId,
-        price: ticket.price,
-        createdAt: ticket.createdAt,
+        transactionId: ticket.code,
+        price: 0, // not in new response
+        createdAt: ticket.scannedAt || new Date().toISOString(),
         scanned: ticket.scanned,
-        ticketTypeName: ticket.TicketType?.name || "Standard",
+        ticketTypeName: undefined, // not in new response
       };
 
       setSelectedTicket(row);
@@ -531,7 +549,7 @@ const CheckIn = ({ summary, ticketId, setTicketId, eventId }: CheckInProps) => {
                     </p>
                   </TicketStatus>
 
-                  <TicketInfo>
+                  {/* <TicketInfo>
                     <div>
                       <p>
                         Ticket Type: <br />
@@ -543,6 +561,21 @@ const CheckIn = ({ summary, ticketId, setTicketId, eventId }: CheckInProps) => {
                         Price:
                         <br />
                         <strong>KES {selectedTicket.price}</strong>
+                      </p>
+                    </div>
+                  </TicketInfo> */}
+
+                  <TicketInfo>
+                    <div>
+                      <p>
+                        Attendee: <br />
+                        <strong>{selectedTicket.name}</strong>
+                      </p>
+                    </div>
+                    <div>
+                      <p>
+                        Email: <br />
+                        <strong>{selectedTicket.email || "—"}</strong>
                       </p>
                     </div>
                   </TicketInfo>

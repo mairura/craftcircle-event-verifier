@@ -3,30 +3,31 @@
 import { useState } from "react";
 
 export type ScannedTicketFromQr = {
-  createdAt: string;
   code: string;
-  price: number;
   scanned: boolean;
-  transactionId: string;
+  scannedAt?: string | null;
+  isComplementary?: boolean;
+  issuedReason?: string | null;
+  status?: string;
+  transactionId?: string;
   userName?: string | null;
   ticketName?: string;
-  status?: string;
+  createdAt?: string;
+  price?: number;
 };
 
 const MUTATION = `
-  mutation ScanTicketFromQr($encryptedPayload: String!, $eventId: String!) {
-    ScanTicketFromQr(encryptedPayload: $encryptedPayload, eventId: $eventId) {
+  mutation ScanTicketFromQr($encryptedPayload: String!, $idempotencyKey: String!, $sessionToken: String!) {
+    ScanTicketFromQr(encryptedPayload: $encryptedPayload, idempotencyKey: $idempotencyKey, sessionToken: $sessionToken) {
       message
       status
       ticket {
-        TicketType { name }
         code
-        createdAt
-        eventId
-        price
+        issuedReason
+        isComplementary
+        status
+        scannedAt
         scanned
-        transactionId
-        user { name }
       }
     }
   }
@@ -40,7 +41,8 @@ export const useScanTicketFromQr = () => {
 
   const scanTicket = async (
     encryptedPayload: string,
-    eventId: string,
+    idempotencyKey: string,
+    sessionToken: string,
   ): Promise<ScannedTicketFromQr | null> => {
     setLoading(true);
     setError(null);
@@ -52,7 +54,7 @@ export const useScanTicketFromQr = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: MUTATION,
-          variables: { encryptedPayload, eventId },
+          variables: { encryptedPayload, idempotencyKey, sessionToken },
         }),
       });
 
@@ -64,9 +66,7 @@ export const useScanTicketFromQr = () => {
 
       const result = json.data?.ScanTicketFromQr;
 
-      if (!result) {
-        throw new Error("Unexpected response format.");
-      }
+      if (!result) throw new Error("Unexpected response format.");
 
       const rawTicket = result.ticket;
 
@@ -76,13 +76,11 @@ export const useScanTicketFromQr = () => {
       }
 
       const ticket: ScannedTicketFromQr = {
-        createdAt: rawTicket.createdAt,
         code: rawTicket.code,
-        transactionId: rawTicket.transactionId,
-        price: rawTicket.price,
         scanned: rawTicket.scanned,
-        ticketName: rawTicket.TicketType?.name || "Unknown Ticket",
-        userName: rawTicket.user?.name || null,
+        scannedAt: rawTicket.scannedAt ?? null,
+        isComplementary: rawTicket.isComplementary,
+        issuedReason: rawTicket.issuedReason ?? null,
         status: result.status,
       };
 
